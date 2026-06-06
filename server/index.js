@@ -839,7 +839,7 @@ app.post("/generate", async (req, res) => {
         model: "gpt-image-2",
         image: await Promise.all(
           referenceImages.map(imagePath =>
-            imagePathToOpenAIFile(imagePath)
+            fileToOpenAIFile(imagePath)
           )
         ),
         prompt,
