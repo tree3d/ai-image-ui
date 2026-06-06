@@ -54,17 +54,24 @@
     </div>
 
     <div v-if="job.status === 'done' && job.image" class="gallery-actions">
-      <button type="button" @click.stop="$emit('open', job.image)">
-        Enlarge
+      <button
+        type="button"
+        aria-label="Enlarge image"
+        @click.stop="$emit('open', job.image)"
+      >
+        <AppIcon name="search" />
+        <span class="gallery-action-label">Enlarge</span>
       </button>
 
-      <span></span>
+      <span class="gallery-action-divider"></span>
 
       <button
         type="button"
+        aria-label="Download image"
         @click.stop.prevent="$emit('download', job.image, job.filename)"
       >
-        Download
+        <AppIcon name="download" />
+        <span class="gallery-action-label">Download</span>
       </button>
     </div>
   </div>

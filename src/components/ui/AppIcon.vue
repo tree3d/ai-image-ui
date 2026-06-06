@@ -45,6 +45,17 @@
     <template v-else-if="name === 'check'">
       <path d="m5 12 4 4L19 6" />
     </template>
+
+    <template v-else-if="name === 'search'">
+      <circle cx="11" cy="11" r="7" />
+      <path d="m16.5 16.5 4 4" />
+    </template>
+
+    <template v-else-if="name === 'download'">
+      <path d="M12 3v12" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M5 21h14" />
+    </template>
   </svg>
 </template>
 
