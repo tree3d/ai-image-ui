@@ -394,6 +394,68 @@ const createStitchAlphaMask = ({ maskInfo, crop }) => {
   return alpha
 }
 
+const clampNumber = (value, min, max) => {
+  return Math.max(min, Math.min(max, value))
+}
+
+const buildCropAroundMask = ({
+  bbox,
+  sourceWidth,
+  sourceHeight,
+  padding = 96,
+  minSize = 256
+}) => {
+  const safePadding = clampNumber(Number(padding) || 0, 0, 1024)
+  const safeMinSize = Math.min(minSize, sourceWidth, sourceHeight)
+
+  let left = bbox.x - safePadding
+  let top = bbox.y - safePadding
+  let right = bbox.x + bbox.width + safePadding
+  let bottom = bbox.y + bbox.height + safePadding
+
+  const centerX = (left + right) / 2
+  const centerY = (top + bottom) / 2
+  const width = Math.max(right - left, safeMinSize)
+  const height = Math.max(bottom - top, safeMinSize)
+
+  left = Math.round(centerX - width / 2)
+  right = Math.round(centerX + width / 2)
+  top = Math.round(centerY - height / 2)
+  bottom = Math.round(centerY + height / 2)
+
+  if (left < 0) {
+    right -= left
+    left = 0
+  }
+
+  if (top < 0) {
+    bottom -= top
+    top = 0
+  }
+
+  if (right > sourceWidth) {
+    left -= right - sourceWidth
+    right = sourceWidth
+  }
+
+  if (bottom > sourceHeight) {
+    top -= bottom - sourceHeight
+    bottom = sourceHeight
+  }
+
+  left = clampNumber(left, 0, sourceWidth - 1)
+  top = clampNumber(top, 0, sourceHeight - 1)
+  right = clampNumber(right, left + 1, sourceWidth)
+  bottom = clampNumber(bottom, top + 1, sourceHeight)
+
+  return {
+    left,
+    top,
+    width: right - left,
+    height: bottom - top
+  }
+}
+
 const uploadCropStitch = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => cb(null, CROP_STITCH_DIR),
@@ -416,6 +478,7 @@ app.post(
       const prompt = req.body.prompt
       const size = req.body.size || "1024x1024"
       const quality = req.body.quality || "medium"
+      const padding = req.body.padding || 96
 
       const sourcePath = req.files?.source?.[0]?.path
       const maskPath = req.files?.mask?.[0]?.path
@@ -462,28 +525,12 @@ app.post(
         })
       }
 
-      const paddingX = Math.round(maskInfo.bbox.width * 0.05)
-      const paddingY = Math.round(maskInfo.bbox.height * 0.05)
-
-      const left = Math.max(0, maskInfo.bbox.x - paddingX)
-      const top = Math.max(0, maskInfo.bbox.y - paddingY)
-
-      const right = Math.min(
-        sourceMeta.width,
-        maskInfo.bbox.x + maskInfo.bbox.width + paddingX
-      )
-
-      const bottom = Math.min(
-        sourceMeta.height,
-        maskInfo.bbox.y + maskInfo.bbox.height + paddingY
-      )
-
-      const crop = {
-        left,
-        top,
-        width: right - left,
-        height: bottom - top
-      }
+      const crop = buildCropAroundMask({
+        bbox: maskInfo.bbox,
+        sourceWidth: sourceMeta.width,
+        sourceHeight: sourceMeta.height,
+        padding
+      })
 
       console.log("CROP-STITCH CROP:", crop)
       console.log("CROP-STITCH MASK BBOX:", maskInfo.bbox)

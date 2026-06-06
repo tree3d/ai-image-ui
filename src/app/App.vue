@@ -322,6 +322,19 @@ const loadImage = (src) => {
   })
 }
 
+const formatRequestError = (err, fallback) => {
+  const data = err?.response?.data
+  const detail =
+    data?.details ||
+    data?.error ||
+    err?.message ||
+    fallback
+
+  return typeof detail === "string"
+    ? detail
+    : JSON.stringify(detail, null, 2)
+}
+
 const startMaskPan = (event) => {
   if (event.button !== 1) return
   if (!maskViewport.value) return
@@ -913,11 +926,7 @@ const generateOutpaint = async () => {
   } catch (err) {
     job.status = "error"
     job.finishedAt = Date.now()
-    job.error =
-      err?.response?.data?.details ||
-      err?.response?.data?.error ||
-      err?.message ||
-      "Outpaint failed"
+    job.error = formatRequestError(err, "Outpaint failed")
 
     //jobs.value.unshift(job)
   }
@@ -1024,11 +1033,7 @@ const generateCropStitchInpaint = async () => {
   } catch (err) {
     job.status = "error"
     job.finishedAt = Date.now()
-    job.error =
-      err?.response?.data?.details ||
-      err?.response?.data?.error ||
-      err?.message ||
-      "Crop-stitch failed"
+    job.error = formatRequestError(err, "Crop-stitch failed")
 
     jobs.value.unshift(job)
   }
@@ -1147,12 +1152,7 @@ const processQueue = async () => {
       } catch (err) {
         job.status = "error"
         job.finishedAt = Date.now()
-
-        job.error =
-          err?.response?.data?.details ||
-          err?.response?.data?.error ||
-          err?.message ||
-          "Generation failed"
+        job.error = formatRequestError(err, "Generation failed")
 
         jobs.value = jobs.value.map(j =>
           j.id === job.id ? { ...job } : j
