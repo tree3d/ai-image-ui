@@ -217,7 +217,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from "vue"
+import { ref, onMounted, onUnmounted, watch } from "vue"
 import { qualityOptions, sizeOptions } from "../constants/options"
 import {
   cropStitchInpaintRequest,
@@ -285,6 +285,42 @@ const {
 } = useGalleryScale()
 
 const selectedQuality = ref("medium")
+
+const pendingTimeouts = new Set()
+
+const scheduleTimeout = (callback, delay) => {
+  const timeoutId = window.setTimeout(() => {
+    pendingTimeouts.delete(timeoutId)
+    callback()
+  }, delay)
+
+  pendingTimeouts.add(timeoutId)
+  return timeoutId
+}
+
+const loadImage = (src) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = "anonymous"
+
+    const cleanup = () => {
+      img.onload = null
+      img.onerror = null
+    }
+
+    img.onload = () => {
+      cleanup()
+      resolve(img)
+    }
+
+    img.onerror = (event) => {
+      cleanup()
+      reject(event)
+    }
+
+    img.src = src
+  })
+}
 
 const startMaskPan = (event) => {
   if (event.button !== 1) return
@@ -494,9 +530,9 @@ const selectInpaintImage = (file) => {
   outpaintMode.value = false
 
 
-  setTimeout(() => {
+  scheduleTimeout(() => {
     initMaskCanvas()
-  })
+  }, 0)
 }
 
 const errorMessage = ref("")
@@ -552,7 +588,7 @@ const copyJobText = async (job) => {
     await navigator.clipboard.writeText(text || "")
     job.copied = true
 
-    setTimeout(() => {
+    scheduleTimeout(() => {
       job.copied = false
     }, 1200)
   } catch (err) {
@@ -661,6 +697,16 @@ const loadInputImages = async () => {
 onMounted(() => {
   loadLastPrompt()
   loadInputImages()
+})
+
+onUnmounted(() => {
+  for (const timeoutId of pendingTimeouts) {
+    window.clearTimeout(timeoutId)
+  }
+
+  pendingTimeouts.clear()
+  maskCtx.value = null
+  draggedGalleryJob.value = null
 })
 
 const deleteInputImage = async (filename) => {
@@ -778,14 +824,7 @@ const generateOutpaint = async () => {
   jobs.value.unshift(job)
 
   try {
-    const img = new Image()
-    img.crossOrigin = "anonymous"
-
-    await new Promise((resolve, reject) => {
-      img.onload = resolve
-      img.onerror = reject
-      img.src = selectedInpaintImage.value.url
-    })
+    const img = await loadImage(selectedInpaintImage.value.url)
 
     const top = Math.max(0, outpaintTop.value || 0)
     const right = Math.max(0, outpaintRight.value || 0)
@@ -919,14 +958,7 @@ const generateCropStitchInpaint = async () => {
   }
 
   try {
-    const img = new Image()
-    img.crossOrigin = "anonymous"
-
-    await new Promise((resolve, reject) => {
-      img.onload = resolve
-      img.onerror = reject
-      img.src = selectedInpaintImage.value.url
-    })
+    const img = await loadImage(selectedInpaintImage.value.url)
 
     const sourceCanvas = document.createElement("canvas")
     sourceCanvas.width = img.naturalWidth
@@ -1144,6 +1176,8 @@ const downloadImage = async (src, filename = null) => {
   const safeFilename =
     filename || `nt-${randomHash()}.png`
 
+  let objectUrl = null
+
   try {
     let blob
 
@@ -1155,7 +1189,7 @@ const downloadImage = async (src, filename = null) => {
       blob = await response.blob()
     }
 
-    const objectUrl = URL.createObjectURL(blob)
+    objectUrl = URL.createObjectURL(blob)
 
     const link = document.createElement("a")
     link.href = objectUrl
@@ -1165,10 +1199,12 @@ const downloadImage = async (src, filename = null) => {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-
-    URL.revokeObjectURL(objectUrl)
   } catch (err) {
     showError(err, "Download failed")
+  } finally {
+    if (objectUrl) {
+      URL.revokeObjectURL(objectUrl)
+    }
   }
 }
 </script>
