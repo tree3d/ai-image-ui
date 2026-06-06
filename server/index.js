@@ -1100,33 +1100,3 @@ app.post(
     }
   }
 )
-
-const translateChineseError = (input) => {
-  if (!input) return input
-
-  let text =
-    typeof input === "string"
-      ? input
-      : JSON.stringify(input, null, 2)
-
-  for (const [zh, en] of Object.entries(zhErrorMap)) {
-    text = text.replaceAll(zh, en)
-  }
-
-  return text
-}
-
-const imagePathToOpenAIFile = async (imagePath) => {
-  const mimeType = mime.lookup(imagePath) || "image/png"
-  const filename = path.basename(imagePath)
-
-  const buffer = fs.readFileSync(imagePath)
-
-  return await toFile(buffer, filename, {
-    type: mimeType
-  })
-}
-
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`)
-})
