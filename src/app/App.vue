@@ -1,6 +1,7 @@
 <template>
   <div class="app">
-    <section class="left-panel">
+    <section class="left-panel">
+
       <ReferenceUploader
         v-model:input-images="inputImages"
         v-model:is-dragging="isDragging"
@@ -160,7 +161,8 @@
         </div>
 
         <div class="divider"></div>
-
+
+
         <OptionSelector
           v-model="selectedSize"
           title="Size"
@@ -179,7 +181,8 @@
 
       </div>
     </section>
-
+
+
     <section class="right-panel">
       <GalleryGrid
         v-if="jobs.length"
@@ -200,7 +203,8 @@
         Generated images will appear here
       </div>
     </section>
-
+
+
     <ErrorModal
       :open="errorOpen"
       :message="errorMessage"
@@ -244,7 +248,7 @@ const jobs = ref([])
 
 const activeJobs = ref(0)
 
-const MAX_PARALLEL_JOBS = 4
+const MAX_PARALLEL_JOBS = 2
 
 const errorOpen = ref(false)
 
