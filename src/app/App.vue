@@ -1085,6 +1085,10 @@ const shuffleQueuedJobs = () => {
   jobs.value = [...queued, ...others]
 }
 
+const clearQueuedJobs = () => {
+  jobs.value = jobs.value.filter(j => j.status !== "queued")
+}
+
 const generate = () => {
   if (!prompt.value.trim()) return
 
@@ -1145,6 +1149,9 @@ const processQueue = async () => {
 
         job.status = "done"
         job.finishedAt = Date.now()
+
+        // Stop all waiting jobs once we have a successful image.
+        clearQueuedJobs()
 
         jobs.value = jobs.value.map(j =>
           j.id === job.id ? { ...job } : j
