@@ -31,25 +31,38 @@
           placeholder="Enter your image prompt..."
         />
 
-        <button
-          class="generate-btn"
-          type="button"
-          @click="
-            outpaintMode
-              ? generateOutpaint()
-              : inpaintMode
-                ? generateCropStitchInpaint()
-                : generate()
-          "
-        >
-          {{
-            outpaintMode
-              ? "Generate Outpaint"
-              : inpaintMode
-                ? "Generate Crop-Stitch Inpaint"
-                : "Generate Image"
-          }}
-        </button>
+        <div class="generate-actions">
+          <button
+            class="generate-btn"
+            type="button"
+            @click="
+              outpaintMode
+                ? generateOutpaint()
+                : inpaintMode
+                  ? generateCropStitchInpaint()
+                  : generate()
+            "
+          >
+            {{
+              outpaintMode
+                ? "Generate Outpaint"
+                : inpaintMode
+                  ? "Generate Crop-Stitch Inpaint"
+                  : "Generate Image"
+            }}
+          </button>
+
+          <button
+            v-if="!outpaintMode && !inpaintMode"
+            class="shield-generate-btn"
+            type="button"
+            title="Generate a protected job that cannot be removed while active"
+            aria-label="Generate shielded image"
+            @click="generate({ shielded: true })"
+          >
+            <AppIcon name="shield" />
+          </button>
+        </div>
 
         <div v-if="loading" class="inline-status">
         <div class="status-spinner"></div>
@@ -241,14 +254,17 @@ import ImageModal from "../components/modal/ImageModal.vue"
 import OptionSelector from "../components/prompt/OptionSelector.vue"
 import GalleryGrid from "../components/gallery/GalleryGrid.vue"
 import ReferenceUploader from "../components/reference/ReferenceUploader.vue"
+import AppIcon from "../components/ui/AppIcon.vue"
 import { useGalleryScale } from "../composables/useGalleryScale"
 import { useImageModal } from "../composables/useImageModal"
 
 const jobs = ref([])
 
-const activeJobs = ref(0)
+const activeNormalJobs = ref(0)
+const activeShieldedJobs = ref(0)
 
 const MAX_PARALLEL_JOBS = 2
+const MAX_PARALLEL_SHIELDED_JOBS = 2
 
 const errorOpen = ref(false)
 
@@ -614,7 +630,9 @@ const copyJobText = async (job) => {
 }
 
 const removePreviewJob = (jobId) => {
-  jobs.value = jobs.value.filter(job => job.id !== jobId)
+  jobs.value = jobs.value.filter(job =>
+    job.id !== jobId || (job.shielded && isActiveJob(job))
+  )
 }
 
 const uploadFileList = async (fileList) => {
@@ -1090,10 +1108,15 @@ const shuffleQueuedJobs = () => {
 }
 
 const clearQueuedJobs = () => {
-  jobs.value = jobs.value.filter(j => j.status !== "queued")
+  jobs.value = jobs.value.filter(j =>
+    j.status !== "queued" || j.shielded
+  )
 }
 
-const generate = () => {
+const isActiveJob = (job) =>
+  job.status === "queued" || job.status === "generating"
+
+const generate = ({ shielded = false } = {}) => {
   if (!prompt.value.trim()) return
 
   const job = {
@@ -1102,6 +1125,7 @@ const generate = () => {
     prompt: prompt.value.trim(),
     size: selectedSize.value || "1024x1024",
     quality: selectedQuality.value || "medium",
+    shielded,
     status: "queued",
     image: null,
     filename: null,
@@ -1115,65 +1139,87 @@ const generate = () => {
   processQueue()
 }
 
-const processQueue = async () => {
-  while (activeJobs.value < MAX_PARALLEL_JOBS) {
-    const job = jobs.value.find(j => j.status === "queued")
+const startQueuedJob = (job) => {
+  const activeCounter = job.shielded
+    ? activeShieldedJobs
+    : activeNormalJobs
 
-    if (!job) return
+  activeCounter.value += 1
+  job.status = "generating"
 
-    activeJobs.value += 1
-    job.status = "generating"
+  ;(async () => {
+    try {
+      let res
 
-    ;(async () => {
-      try {
-        let res
-
-        if (job.type === "inpaint") {
-          res = await inpaintRequest(job.payload)
-        } else if (job.type === "outpaint") {
-          res = await outpaintCropStitchRequest(job.payload)
-        } else if (job.type === "crop-stitch-inpaint") {
-          res = await cropStitchInpaintRequest(job.payload)
-        } else {
-          res = await generateImageRequest({
-            prompt: job.prompt,
-            size: job.size
-          })
-        }
-
-        job.filename = res.data.filename || `nt-${randomHash()}.png`
-
-        if (res.data.image) {
-          job.image = `data:${res.data.mimeType || "image/png"};base64,${res.data.image}`
-        } else if (res.data.filename) {
-          job.image = `/output/${res.data.filename}?t=${Date.now()}`
-        } else {
-          throw new Error("Request succeeded but returned no image or filename")
-        }
-
-        job.status = "done"
-        job.finishedAt = Date.now()
-
-        // Stop all waiting jobs once we have a successful image.
-        clearQueuedJobs()
-
-        jobs.value = jobs.value.map(j =>
-          j.id === job.id ? { ...job } : j
-        )
-      } catch (err) {
-        job.status = "error"
-        job.finishedAt = Date.now()
-        job.error = formatRequestError(err, "Generation failed")
-
-        jobs.value = jobs.value.map(j =>
-          j.id === job.id ? { ...job } : j
-        )
-      } finally {
-        activeJobs.value -= 1
-        shuffleQueuedJobs()
-        processQueue()
+      if (job.type === "inpaint") {
+        res = await inpaintRequest(job.payload)
+      } else if (job.type === "outpaint") {
+        res = await outpaintCropStitchRequest(job.payload)
+      } else if (job.type === "crop-stitch-inpaint") {
+        res = await cropStitchInpaintRequest(job.payload)
+      } else {
+        res = await generateImageRequest({
+          prompt: job.prompt,
+          size: job.size
+        })
       }
-    })()
+
+      job.filename = res.data.filename || `nt-${randomHash()}.png`
+
+      if (res.data.image) {
+        job.image = `data:${res.data.mimeType || "image/png"};base64,${res.data.image}`
+      } else if (res.data.filename) {
+        job.image = `/output/${res.data.filename}?t=${Date.now()}`
+      } else {
+        throw new Error("Request succeeded but returned no image or filename")
+      }
+
+      job.status = "done"
+      job.finishedAt = Date.now()
+
+      // A successful protected job must not clear ordinary waiting jobs.
+      if (!job.shielded) {
+        clearQueuedJobs()
+      }
+
+      jobs.value = jobs.value.map(j =>
+        j.id === job.id ? { ...job } : j
+      )
+    } catch (err) {
+      job.status = "error"
+      job.finishedAt = Date.now()
+      job.error = formatRequestError(err, "Generation failed")
+
+      jobs.value = jobs.value.map(j =>
+        j.id === job.id ? { ...job } : j
+      )
+    } finally {
+      activeCounter.value -= 1
+      shuffleQueuedJobs()
+      processQueue()
+    }
+  })()
+}
+
+const processQueue = () => {
+  while (activeNormalJobs.value < MAX_PARALLEL_JOBS) {
+    const job = jobs.value.find(j =>
+      j.status === "queued" && !j.shielded
+    )
+
+    if (!job) break
+
+    startQueuedJob(job)
+  }
+
+  while (activeShieldedJobs.value < MAX_PARALLEL_SHIELDED_JOBS) {
+    const job = jobs.value.find(j =>
+      j.status === "queued" && j.shielded
+    )
+
+    if (!job) break
+
+    startQueuedJob(job)
   }
 }
 

@@ -4,18 +4,19 @@
     :class="{
       failed: job.status === 'error',
       generating: job.status === 'generating',
-      queued: job.status === 'queued'
+      queued: job.status === 'queued',
+      shielded: job.shielded && isActive
     }"
   >
     <button
       class="preview-remove"
       type="button"
-      :aria-label="job.status === 'generating' ? 'Generating' : 'Remove preview'"
-      :disabled="job.status === 'generating'"
-      :class="{ locked: job.status === 'generating' }"
-      @click.stop.prevent="job.status !== 'generating' && $emit('remove', job.id)"
+      :aria-label="isLocked ? 'Protected active job' : 'Remove preview'"
+      :disabled="isLocked"
+      :class="{ locked: isLocked }"
+      @click.stop.prevent="!isLocked && $emit('remove', job.id)"
     >
-      <AppIcon :name="job.status === 'generating' ? 'lock' : 'x'" />
+      <AppIcon :name="isLocked ? (job.shielded ? 'shield' : 'lock') : 'x'" />
     </button>
 
     <button
@@ -78,9 +79,10 @@
 </template>
 
 <script setup>
+import { computed } from "vue"
 import AppIcon from "../ui/AppIcon.vue"
 
-defineProps({
+const props = defineProps({
   job: {
     type: Object,
     required: true
@@ -95,4 +97,12 @@ defineEmits([
   "open",
   "remove"
 ])
+
+const isActive = computed(() =>
+  props.job.status === "queued" || props.job.status === "generating"
+)
+
+const isLocked = computed(() =>
+  props.job.status === "generating" || (props.job.shielded && isActive.value)
+)
 </script>

@@ -37,6 +37,11 @@
       <path d="M8 10V7a4 4 0 0 1 8 0v3" />
     </template>
 
+    <template v-else-if="name === 'shield'">
+      <path d="M12 3 20 6v5c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6l8-3Z" />
+      <path d="M9 12.5 11 14.5 15.5 10" />
+    </template>
+
     <template v-else-if="name === 'copy'">
       <rect x="8" y="8" width="11" height="11" rx="2" />
       <path d="M5 15H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" />

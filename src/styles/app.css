@@ -120,9 +120,14 @@ textarea {
   border-color: #a855f7;
 }
 
-.generate-btn {
-  width: 100%;
+.generate-actions {
   margin-top: 22px;
+  display: flex;
+  gap: 10px;
+}
+
+.generate-btn {
+  flex: 1 1 auto;
   border: 0;
   border-radius: 10px;
   padding: 16px;
@@ -130,6 +135,28 @@ textarea {
   font-weight: 800;
   cursor: pointer;
   background: linear-gradient(90deg, #a855f7, #5b2cff);
+}
+
+.shield-generate-btn {
+  flex: 0 0 58px;
+  border: 1px solid rgba(251, 146, 60, 0.65);
+  border-radius: 10px;
+  color: #ffedd5;
+  background: linear-gradient(180deg, #d97706, #9a3412);
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.18);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.shield-generate-btn:hover {
+  border-color: #fdba74;
+  box-shadow: 0 0 26px rgba(249, 115, 22, 0.34);
+}
+
+.shield-generate-btn .app-icon {
+  width: 24px;
+  height: 24px;
 }
 
 .generate-btn:disabled {
@@ -986,6 +1013,22 @@ textarea {
     0 0 34px rgba(90, 170, 255, 0.18) !important;
 }
 
+/* SHIELDED ACTIVE JOBS */
+
+.gallery-card.shielded {
+  border-color: rgba(251, 146, 60, 0.78) !important;
+
+  background: linear-gradient(
+    180deg,
+    rgba(154, 72, 14, 0.78),
+    rgba(67, 27, 7, 0.9)
+  ) !important;
+
+  box-shadow:
+    0 0 0 1px rgba(251, 146, 60, 0.24),
+    0 0 36px rgba(249, 115, 22, 0.24) !important;
+}
+
 /* TEXT COLORS */
 
 .gallery-card.failed strong {
@@ -1010,6 +1053,14 @@ textarea {
 
 .gallery-card.queued small {
   color: #bfdbfe !important;
+}
+
+.gallery-card.shielded strong {
+  color: #ffedd5 !important;
+}
+
+.gallery-card.shielded small {
+  color: #fed7aa !important;
 }
 
 .status-spinner {
