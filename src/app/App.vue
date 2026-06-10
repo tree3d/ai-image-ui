@@ -102,16 +102,6 @@
           </div>
         </div>
 
-        <div v-if="loading" class="inline-status">
-        <div class="status-spinner"></div>
-          <div>
-            <strong>
-              {{ generationStatus === "polling" ? "Generating video..." : "Generating..." }}
-            </strong>
-            <p>You can keep editing your prompt while this runs.</p>
-          </div>
-        </div>
-
         <div class="divider"></div>
 
         <div v-if="inpaintMode && selectedInpaintImage" class="inpaint-box">
@@ -277,7 +267,6 @@ import { qualityOptions, sizeOptions } from "../constants/options"
 import {
   cropStitchInpaintRequest,
   generateImageRequest,
-  inpaintRequest,
   outpaintCropStitchRequest
 } from "../api/generation"
 import {
@@ -1125,8 +1114,6 @@ const prompt = ref(
 )
 
 const lastPrompt = ref("")
-const generationStatus = ref("idle") // idle | generating | polling | done | error
-const loading = ref(false)
 const {
   closeModal,
   modalImage,
@@ -1223,16 +1210,15 @@ const startQueuedJob = (job, { countsTowardLimit = true } = {}) => {
     try {
       let res
 
-      if (job.type === "inpaint") {
-        res = await inpaintRequest(job.payload)
-      } else if (job.type === "outpaint") {
+      if (job.type === "outpaint") {
         res = await outpaintCropStitchRequest(job.payload)
       } else if (job.type === "crop-stitch-inpaint") {
         res = await cropStitchInpaintRequest(job.payload)
       } else {
         res = await generateImageRequest({
           prompt: job.prompt,
-          size: job.size
+          size: job.size,
+          quality: job.quality
         })
       }
 

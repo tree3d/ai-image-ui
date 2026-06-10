@@ -1,13 +1,7 @@
 import { api } from "./client"
 
-export const generateImageRequest = ({ prompt, size }) => {
-  return api.post("/generate", { prompt, size })
-}
-
-export const inpaintRequest = (payload) => {
-  return api.post("/inpaint", payload, {
-    headers: { "Content-Type": "multipart/form-data" }
-  })
+export const generateImageRequest = ({ prompt, size, quality }) => {
+  return api.post("/generate", { prompt, size, quality })
 }
 
 export const cropStitchInpaintRequest = (payload) => {

@@ -11,7 +11,6 @@ export default defineConfig({
       "/upload-reference": "http://localhost:5010",
       "/input-images": "http://localhost:5010",
       "/last-prompt": "http://localhost:5010",
-      "/inpaint": "http://localhost:5010",
       "/outpaint-crop-stitch": "http://127.0.0.1:5010",
       "/inpaint-crop-stitch": "http://127.0.0.1:5010",
     }

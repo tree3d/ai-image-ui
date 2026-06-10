@@ -1,6 +1,5 @@
 import multer from "multer"
 import express from "express"
-import axios from "axios"
 import fs from "fs"
 import path from "path"
 import crypto from "crypto"
@@ -720,22 +719,6 @@ if (!fs.existsSync(MASK_DIR)) {
   fs.mkdirSync(MASK_DIR, { recursive: true })
 }
 
-const maskStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, MASK_DIR)
-  },
-  filename: (req, file, cb) => {
-    cb(null, `mask-${randomHash()}.png`)
-  }
-})
-
-const uploadMask = multer({
-  storage: maskStorage,
-  limits: {
-    fileSize: 50 * 1024 * 1024
-  }
-})
-
 const fileToOpenAIFile = async (filePath, fallbackType = "image/png") => {
   const mimeType = mime.lookup(filePath) || fallbackType
   const buffer = fs.readFileSync(filePath)
@@ -830,12 +813,10 @@ app.post("/upload-reference", upload.array("images", 5), (req, res) => {
 
     const totalAfterUpload = existingFiles.length
 
-    // ❌ if over 5, delete the newly uploaded ones
     if (totalAfterUpload > 5) {
-      // delete newest files (just uploaded)
-      //req.files.forEach(file => {
-      //  fs.unlinkSync(file.path)
-      //})
+      req.files.forEach(file => {
+        fs.unlinkSync(file.path)
+      })
 
       return res.status(400).json({
         error: "Upload limit exceeded",
