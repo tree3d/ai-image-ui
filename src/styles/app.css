@@ -705,6 +705,22 @@ textarea {
   background: rgba(220, 38, 38, 0.92);
 }
 
+.thumb-delete.processing,
+.thumb-delete.processing:hover,
+.thumb-delete.processing:disabled {
+  opacity: 1;
+  transform: none;
+  cursor: wait;
+  background: rgba(127, 29, 29, 0.94);
+  color: #fee2e2;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+}
+
+.thumb-delete.processing .app-icon {
+  width: 18px;
+  height: 18px;
+}
+
 .gallery-actions {
   position: absolute;
   left: 8px;

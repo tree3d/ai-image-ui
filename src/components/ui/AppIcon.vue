@@ -32,6 +32,12 @@
       <path d="m6 6 12 12" />
     </template>
 
+    <template v-else-if="name === 'ellipsis'">
+      <circle cx="5" cy="12" r="1.65" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.65" fill="currentColor" stroke="none" />
+      <circle cx="19" cy="12" r="1.65" fill="currentColor" stroke="none" />
+    </template>
+
     <template v-else-if="name === 'lock'">
       <rect x="5" y="10" width="14" height="10" rx="2" />
       <path d="M8 10V7a4 4 0 0 1 8 0v3" />

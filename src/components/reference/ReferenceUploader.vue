@@ -61,6 +61,7 @@
 
             <button
               class="thumb-delete"
+              :class="{ processing: deletingImages.has(file.filename) }"
               type="button"
               aria-label="Delete reference image"
               :disabled="deletingImages.has(file.filename)"
@@ -68,7 +69,10 @@
               @touchstart.stop
               @click.stop.prevent="$emit('delete-input-image', file.filename)"
             >
-              <span v-if="deletingImages.has(file.filename)">...</span>
+              <AppIcon
+                v-if="deletingImages.has(file.filename)"
+                name="ellipsis"
+              />
               <AppIcon v-else name="x" />
             </button>
 
