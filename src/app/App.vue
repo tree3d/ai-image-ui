@@ -73,6 +73,33 @@
           >
             <AppIcon name="zap" />
           </button>
+
+          <div
+            v-if="!outpaintMode && !inpaintMode"
+            class="batch-generate-control"
+          >
+            <input
+              v-model.number="batchCount"
+              class="batch-count-input"
+              type="number"
+              min="1"
+              max="32"
+              step="1"
+              title="Number of immediate parallel jobs"
+              aria-label="Immediate batch job count"
+              @change="clampBatchCount"
+            />
+
+            <button
+              class="batch-generate-btn"
+              type="button"
+              title="Launch immediate parallel batch"
+              aria-label="Launch immediate parallel batch"
+              @click="generateBatch"
+            >
+              <AppIcon name="flame" />
+            </button>
+          </div>
         </div>
 
         <div v-if="loading" class="inline-status">
@@ -316,6 +343,7 @@ const {
 } = useGalleryScale()
 
 const selectedQuality = ref("medium")
+const batchCount = ref(4)
 
 const pendingTimeouts = new Set()
 
@@ -1127,7 +1155,30 @@ const clearQueuedJobs = () => {
 const isActiveJob = (job) =>
   job.status === "queued" || job.status === "generating"
 
-const generate = ({ shielded = false, immediate = false } = {}) => {
+const clampBatchCount = () => {
+  const count = Number.isFinite(Number(batchCount.value))
+    ? Math.trunc(Number(batchCount.value))
+    : 1
+
+  batchCount.value = Math.max(1, Math.min(32, count))
+  return batchCount.value
+}
+
+const generateBatch = () => {
+  if (!prompt.value.trim()) return
+
+  const count = clampBatchCount()
+
+  for (let index = 0; index < count; index++) {
+    generate({ immediate: true, batch: true })
+  }
+}
+
+const generate = ({
+  shielded = false,
+  immediate = false,
+  batch = false
+} = {}) => {
   if (!prompt.value.trim()) return
 
   const job = {
@@ -1138,6 +1189,7 @@ const generate = ({ shielded = false, immediate = false } = {}) => {
     quality: selectedQuality.value || "medium",
     shielded,
     immediate,
+    batch,
     status: "queued",
     image: null,
     filename: null,

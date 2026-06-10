@@ -171,6 +171,53 @@ textarea {
   height: 24px;
 }
 
+.batch-generate-control {
+  flex: 0 0 auto;
+  display: flex;
+  border: 1px solid rgba(251, 113, 133, 0.72);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(69, 10, 10, 0.92);
+  box-shadow: 0 0 22px rgba(244, 63, 94, 0.22);
+}
+
+.batch-count-input {
+  width: 52px;
+  min-width: 0;
+  border: 0;
+  border-right: 1px solid rgba(251, 113, 133, 0.42);
+  padding: 0 7px;
+  outline: none;
+  background: rgba(69, 10, 10, 0.78);
+  color: #fff1f2;
+  font-weight: 800;
+  text-align: center;
+}
+
+.batch-count-input:focus {
+  background: rgba(127, 29, 29, 0.9);
+}
+
+.batch-generate-btn {
+  width: 58px;
+  border: 0;
+  color: #fff7ed;
+  background: linear-gradient(180deg, #f97316, #be123c);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.batch-generate-control:hover {
+  border-color: #fda4af;
+  box-shadow: 0 0 30px rgba(244, 63, 94, 0.42);
+}
+
+.batch-generate-btn .app-icon {
+  width: 26px;
+  height: 26px;
+}
+
 .shield-generate-btn:hover {
   border-color: #fdba74;
   box-shadow: 0 0 26px rgba(249, 115, 22, 0.34);
@@ -1067,6 +1114,23 @@ textarea {
     0 0 38px rgba(239, 68, 68, 0.26) !important;
 }
 
+/* IMMEDIATE BATCH JOBS */
+
+.gallery-card.batch {
+  border-color: rgba(251, 113, 133, 0.9) !important;
+
+  background: linear-gradient(
+    155deg,
+    rgba(190, 18, 60, 0.88),
+    rgba(124, 45, 18, 0.9) 54%,
+    rgba(69, 10, 10, 0.96)
+  ) !important;
+
+  box-shadow:
+    0 0 0 1px rgba(251, 113, 133, 0.32),
+    0 0 42px rgba(249, 115, 22, 0.3) !important;
+}
+
 /* TEXT COLORS */
 
 .gallery-card.failed strong {
@@ -1107,6 +1171,14 @@ textarea {
 
 .gallery-card.immediate small {
   color: #fecaca !important;
+}
+
+.gallery-card.batch strong {
+  color: #fff7ed !important;
+}
+
+.gallery-card.batch small {
+  color: #fed7aa !important;
 }
 
 .status-spinner {

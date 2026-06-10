@@ -6,7 +6,8 @@
       generating: job.status === 'generating',
       queued: job.status === 'queued',
       shielded: job.shielded && isActive,
-      immediate: job.immediate && isActive
+      immediate: job.immediate && isActive,
+      batch: job.batch && isActive
     }"
   >
     <button
