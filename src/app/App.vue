@@ -62,6 +62,17 @@
           >
             <AppIcon name="shield" />
           </button>
+
+          <button
+            v-if="!outpaintMode && !inpaintMode"
+            class="immediate-generate-btn"
+            type="button"
+            title="Generate immediately without queue or parallel limits"
+            aria-label="Generate image immediately"
+            @click="generate({ immediate: true })"
+          >
+            <AppIcon name="zap" />
+          </button>
         </div>
 
         <div v-if="loading" class="inline-status">
@@ -1116,7 +1127,7 @@ const clearQueuedJobs = () => {
 const isActiveJob = (job) =>
   job.status === "queued" || job.status === "generating"
 
-const generate = ({ shielded = false } = {}) => {
+const generate = ({ shielded = false, immediate = false } = {}) => {
   if (!prompt.value.trim()) return
 
   const job = {
@@ -1126,6 +1137,7 @@ const generate = ({ shielded = false } = {}) => {
     size: selectedSize.value || "1024x1024",
     quality: selectedQuality.value || "medium",
     shielded,
+    immediate,
     status: "queued",
     image: null,
     filename: null,
@@ -1135,16 +1147,24 @@ const generate = ({ shielded = false } = {}) => {
 
   jobs.value.unshift(job)
 
+  if (immediate) {
+    startQueuedJob(job, { countsTowardLimit: false })
+    return
+  }
+
   shuffleQueuedJobs()
   processQueue()
 }
 
-const startQueuedJob = (job) => {
+const startQueuedJob = (job, { countsTowardLimit = true } = {}) => {
   const activeCounter = job.shielded
     ? activeShieldedJobs
     : activeNormalJobs
 
-  activeCounter.value += 1
+  if (countsTowardLimit) {
+    activeCounter.value += 1
+  }
+
   job.status = "generating"
 
   ;(async () => {
@@ -1178,7 +1198,7 @@ const startQueuedJob = (job) => {
       job.finishedAt = Date.now()
 
       // A successful protected job must not clear ordinary waiting jobs.
-      if (!job.shielded) {
+      if (!job.shielded && !job.immediate) {
         clearQueuedJobs()
       }
 
@@ -1194,9 +1214,11 @@ const startQueuedJob = (job) => {
         j.id === job.id ? { ...job } : j
       )
     } finally {
-      activeCounter.value -= 1
-      shuffleQueuedJobs()
-      processQueue()
+      if (countsTowardLimit) {
+        activeCounter.value -= 1
+        shuffleQueuedJobs()
+        processQueue()
+      }
     }
   })()
 }

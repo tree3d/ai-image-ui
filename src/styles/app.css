@@ -149,6 +149,28 @@ textarea {
   place-items: center;
 }
 
+.immediate-generate-btn {
+  flex: 0 0 58px;
+  border: 1px solid rgba(248, 113, 113, 0.7);
+  border-radius: 10px;
+  color: #fee2e2;
+  background: linear-gradient(180deg, #dc2626, #7f1d1d);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.immediate-generate-btn:hover {
+  border-color: #fca5a5;
+  box-shadow: 0 0 28px rgba(239, 68, 68, 0.38);
+}
+
+.immediate-generate-btn .app-icon {
+  width: 24px;
+  height: 24px;
+}
+
 .shield-generate-btn:hover {
   border-color: #fdba74;
   box-shadow: 0 0 26px rgba(249, 115, 22, 0.34);
@@ -1029,6 +1051,22 @@ textarea {
     0 0 36px rgba(249, 115, 22, 0.24) !important;
 }
 
+/* IMMEDIATE BYPASS JOBS */
+
+.gallery-card.immediate {
+  border-color: rgba(248, 113, 113, 0.82) !important;
+
+  background: linear-gradient(
+    180deg,
+    rgba(153, 27, 27, 0.8),
+    rgba(69, 10, 10, 0.92)
+  ) !important;
+
+  box-shadow:
+    0 0 0 1px rgba(248, 113, 113, 0.28),
+    0 0 38px rgba(239, 68, 68, 0.26) !important;
+}
+
 /* TEXT COLORS */
 
 .gallery-card.failed strong {
@@ -1061,6 +1099,14 @@ textarea {
 
 .gallery-card.shielded small {
   color: #fed7aa !important;
+}
+
+.gallery-card.immediate strong {
+  color: #fee2e2 !important;
+}
+
+.gallery-card.immediate small {
+  color: #fecaca !important;
 }
 
 .status-spinner {

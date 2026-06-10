@@ -42,6 +42,10 @@
       <path d="M9 12.5 11 14.5 15.5 10" />
     </template>
 
+    <template v-else-if="name === 'zap'">
+      <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
+    </template>
+
     <template v-else-if="name === 'copy'">
       <rect x="8" y="8" width="11" height="11" rx="2" />
       <path d="M5 15H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" />

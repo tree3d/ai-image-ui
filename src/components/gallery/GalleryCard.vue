@@ -5,7 +5,8 @@
       failed: job.status === 'error',
       generating: job.status === 'generating',
       queued: job.status === 'queued',
-      shielded: job.shielded && isActive
+      shielded: job.shielded && isActive,
+      immediate: job.immediate && isActive
     }"
   >
     <button
