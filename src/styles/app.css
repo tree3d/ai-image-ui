@@ -250,34 +250,6 @@ textarea {
   font-size: 18px;
 }
 
-.inline-status {
-  margin-top: 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 14px;
-  background: rgba(168, 85, 247, 0.12);
-  border: 1px solid rgba(168, 85, 247, 0.28);
-  color: white;
-}
-
-.inline-status p {
-  margin: 4px 0 0;
-  color: #a7a3b8;
-  font-size: 13px;
-}
-
-.status-spinner {
-  width: 24px;
-  height: 24px;
-  border-radius: 999px;
-  border: 3px solid rgba(255, 255, 255, 0.25);
-  border-top-color: white;
-  animation: spin 1s linear infinite;
-  flex: 0 0 auto;
-}
-
 .modal {
   position: fixed;
   inset: 0;
@@ -610,16 +582,6 @@ textarea {
   color: #fecaca;
 }
 
-.gallery-actions {
-  pointer-events: auto;
-  z-index: 20;
-}
-
-.gallery-actions button {
-  pointer-events: auto;
-  cursor: pointer;
-}
-
 @media (max-width: 900px) {
   .app {
     grid-template-columns: 1fr;
@@ -895,7 +857,7 @@ textarea {
 .thumb-card img {
   cursor: zoom-in;
 }
-
+
 .gallery-scale-box {
   width: 100%;
   margin-bottom: 18px;
@@ -1231,28 +1193,6 @@ textarea {
   cursor: pointer;
 }
 
-.inpaint-stage {
-  position: relative;
-  width: 100%;
-  max-width: 520px;
-  margin: 0 auto;
-}
-
-.inpaint-source {
-  display: block;
-  width: 100%;
-  border-radius: 14px;
-}
-
-.mask-canvas {
-  position: absolute;
-  inset: 0;
-  border-radius: 14px;
-  cursor: crosshair;
-  mix-blend-mode: screen;
-  opacity: 0.55;
-}
-
 .brush-label {
   display: block;
   margin-top: 14px;
@@ -1482,6 +1422,11 @@ textarea {
   display: flex;
   justify-content: center;
   border-radius: 14px;
+  cursor: default;
+}
+
+.inpaint-viewport:active {
+  cursor: grabbing;
 }
 
 .inpaint-stage {
@@ -1491,20 +1436,18 @@ textarea {
 
 .inpaint-source {
   display: block;
+  width: 100%;
+  border-radius: 14px;
 }
 
 .mask-canvas {
   position: absolute;
   inset: 0;
+  border-radius: 14px;
+  cursor: crosshair;
+  mix-blend-mode: screen;
+  opacity: 0.55;
   touch-action: none;
-}
-
-.inpaint-viewport {
-  cursor: default;
-}
-
-.inpaint-viewport:active {
-  cursor: grabbing;
 }
 
 @keyframes spin {

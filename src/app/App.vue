@@ -294,6 +294,7 @@ const MAX_PARALLEL_JOBS = 2
 const MAX_PARALLEL_SHIELDED_JOBS = 2
 
 const errorOpen = ref(false)
+const errorMessage = ref("")
 
 const selectedSize = ref("auto")
 
@@ -317,7 +318,6 @@ const maskZoom = ref(1)
 const cropStitchPadding = ref(96)
 
 const outpaintMode = ref(false)
-// const outpaintPadding = ref(256)
 
 const outpaintTop = ref(0)
 const outpaintRight = ref(256)
@@ -331,8 +331,19 @@ const {
   galleryScale
 } = useGalleryScale()
 
+const {
+  closeModal,
+  modalImage,
+  modalOpen,
+  openModal
+} = useImageModal()
+
 const selectedQuality = ref("medium")
 const batchCount = ref(4)
+
+const prompt = ref(
+  "chubby bearded man, full body view, wearing loose tank top t shirt, loose sweat shorts, barefoot."
+)
 
 const pendingTimeouts = new Set()
 
@@ -430,6 +441,7 @@ const stopMaskPan = (event) => {
 const draggedGalleryJob = ref(null)
 const isDraggingGallery = ref(false)
 const referenceDropIndex = ref(null)
+const isDragging = ref(false)
 
 const onGalleryDragStart = (event, job) => {
   draggedGalleryJob.value = job
@@ -491,10 +503,10 @@ const onGalleryDropAt = async (targetIndex) => {
   } catch (err) {
     showError(err, "Could not place gallery image into reference position")
   } finally {
-      draggedGalleryJob.value = null
-      isDraggingGallery.value = false
-      referenceDropIndex.value = null
-    }
+    draggedGalleryJob.value = null
+    isDraggingGallery.value = false
+    referenceDropIndex.value = null
+  }
 }
 
 watch(
@@ -578,10 +590,10 @@ const onGalleryDrop = async () => {
   } catch (err) {
     showError(err, "Could not add gallery image as reference")
   } finally {
-      draggedGalleryJob.value = null
-      isDraggingGallery.value = false
-      referenceDropIndex.value = null
-    }
+    draggedGalleryJob.value = null
+    isDraggingGallery.value = false
+    referenceDropIndex.value = null
+  }
 }
 
 const selectInpaintImage = (file) => {
@@ -596,17 +608,12 @@ const selectInpaintImage = (file) => {
   }, 0)
 }
 
-const errorMessage = ref("")
-
-const isDragging = ref(false)
-
 const loadLastPrompt = async () => {
   try {
     const res = await getLastPrompt()
 
     if (res.data.prompt) {
       prompt.value = res.data.prompt
-      lastPrompt.value = res.data.prompt
     }
   } catch (err) {
     console.warn("Could not load last prompt", err)
@@ -969,16 +976,12 @@ const generateOutpaint = async () => {
 
     job.payload = formData
 
-    //jobs.value.unshift(job)
-
     shuffleQueuedJobs()
     processQueue()
   } catch (err) {
     job.status = "error"
     job.finishedAt = Date.now()
     job.error = formatRequestError(err, "Outpaint failed")
-
-    //jobs.value.unshift(job)
   }
 }
 
@@ -1108,18 +1111,6 @@ const showError = (err, fallback = "Generation failed") => {
 
   errorOpen.value = false
 }
-
-const prompt = ref(
-  "chubby bearded man, full body view, wearing loose tank top t shirt, loose sweat shorts, barefoot."
-)
-
-const lastPrompt = ref("")
-const {
-  closeModal,
-  modalImage,
-  modalOpen,
-  openModal
-} = useImageModal()
 
 const shuffleQueuedJobs = () => {
   const queued = jobs.value.filter(j => j.status === "queued")
@@ -1298,13 +1289,8 @@ const downloadImage = async (src, filename = null) => {
   try {
     let blob
 
-    if (src.startsWith("data:")) {
-      const response = await fetch(src)
-      blob = await response.blob()
-    } else {
-      const response = await fetch(src)
-      blob = await response.blob()
-    }
+    const response = await fetch(src)
+    blob = await response.blob()
 
     objectUrl = URL.createObjectURL(blob)
 
