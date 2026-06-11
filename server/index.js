@@ -603,21 +603,45 @@ app.post(
         })
       }
 
-      const rawAlphaMask = createStitchAlphaMask({
-        maskInfo,
-        crop
-      })
+      // Extract the actual brush alpha from the normalized mask, cropped to the
+      // crop region. This preserves the anti-aliased edges from the canvas brush
+      // strokes instead of using the binary editMap (which discards that info).
+      const maskAlphaCropped = await sharp(normalizedMaskPath)
+        .extractChannel("alpha")
+        .extract({ left: crop.left, top: crop.top, width: crop.width, height: crop.height })
+        .png()
+        .toBuffer()
 
-      const alphaMaskPng = await sharp(rawAlphaMask, {
-        raw: {
-          width: crop.width,
-          height: crop.height,
-          channels: 1
-        }
+      // Hard interior: threshold at 128 — any pixel with >= 50% paint coverage
+      // becomes fully opaque so the inpainted content is never diluted at center.
+      const hardResult = await sharp(maskAlphaCropped)
+        .threshold(128)
+        .raw()
+        .toBuffer({ resolveWithObject: true })
+
+      // Soft edge: dilate + blur creates a feathered transition around the boundary.
+      const softResult = await sharp(maskAlphaCropped)
+        .dilate(3)
+        .blur(14)
+        .raw()
+        .toBuffer({ resolveWithObject: true })
+
+      // Pixel-wise max with correct per-channel stride.
+      // Interior pixels stay at 255; edge pixels use the feathered value.
+      const hData = hardResult.data
+      const sData = softResult.data
+      const hCh = hardResult.info.channels
+      const sCh = softResult.info.channels
+      const pixelCount = crop.width * crop.height
+
+      const combinedRaw = Buffer.allocUnsafe(pixelCount)
+      for (let i = 0; i < pixelCount; i++) {
+        combinedRaw[i] = Math.max(hData[i * hCh], sData[i * sCh])
+      }
+
+      const alphaMaskPng = await sharp(combinedRaw, {
+        raw: { width: crop.width, height: crop.height, channels: 1 }
       })
-        .threshold(250)
-        .dilate(2)
-        .blur(16)
         .png()
         .toBuffer()
 

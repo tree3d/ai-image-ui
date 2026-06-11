@@ -53,29 +53,29 @@
           </button>
 
           <button
-            v-if="!outpaintMode && !inpaintMode"
+            v-if="!outpaintMode"
             class="shield-generate-btn"
             type="button"
             title="Generate a protected job that cannot be removed while active"
             aria-label="Generate shielded image"
-            @click="generate({ shielded: true })"
+            @click="inpaintMode ? generateCropStitchInpaint({ shielded: true }) : generate({ shielded: true })"
           >
             <AppIcon name="shield" />
           </button>
 
           <button
-            v-if="!outpaintMode && !inpaintMode"
+            v-if="!outpaintMode"
             class="immediate-generate-btn"
             type="button"
             title="Generate immediately without queue or parallel limits"
             aria-label="Generate image immediately"
-            @click="generate({ immediate: true })"
+            @click="inpaintMode ? generateCropStitchInpaint({ immediate: true }) : generate({ immediate: true })"
           >
             <AppIcon name="zap" />
           </button>
 
           <div
-            v-if="!outpaintMode && !inpaintMode"
+            v-if="!outpaintMode"
             class="batch-generate-control"
           >
             <input
@@ -985,7 +985,7 @@ const generateOutpaint = async () => {
   }
 }
 
-const generateCropStitchInpaint = async () => {
+const generateCropStitchInpaint = async ({ shielded = false, immediate = false, batch = false } = {}) => {
   if (!prompt.value.trim()) {
     showError({ message: "Prompt is required" }, "Crop-stitch failed")
     return
@@ -1012,6 +1012,9 @@ const generateCropStitchInpaint = async () => {
     type: "crop-stitch-inpaint",
     payload: null,
     prompt: prompt.value.trim(),
+    shielded,
+    immediate,
+    batch,
     status: "queued",
     image: null,
     filename: null,
@@ -1081,6 +1084,11 @@ const generateCropStitchInpaint = async () => {
 
     jobs.value.unshift(job)
 
+    if (immediate) {
+      startQueuedJob(job, { countsTowardLimit: false })
+      return
+    }
+
     shuffleQueuedJobs()
     processQueue()
   } catch (err) {
@@ -1148,7 +1156,11 @@ const generateBatch = () => {
   const count = clampBatchCount()
 
   for (let index = 0; index < count; index++) {
-    generate({ immediate: true, batch: true })
+    if (inpaintMode.value) {
+      generateCropStitchInpaint({ immediate: true, batch: true })
+    } else {
+      generate({ immediate: true, batch: true })
+    }
   }
 }
 
