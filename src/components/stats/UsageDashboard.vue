@@ -27,11 +27,21 @@
       </button>
     </div>
     <div v-if="error" class="usage-error">{{ error }}</div>
-    <div v-if="stats?.dailyCosts?.length" class="usage-sparkline">
-      <svg :width="sparkW" height="28" class="sparkline-svg">
-        <polyline :points="sparkPoints" fill="none" stroke="rgba(168,85,247,0.75)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
-        <circle v-for="(p, i) in sparkDots" :key="i" :cx="p.x" :cy="p.y" r="2" fill="#a855f7"/>
-      </svg>
+    <div v-if="bars.length" class="usage-bargraph">
+      <div
+        v-for="(b, i) in bars"
+        :key="i"
+        class="usage-bar-col"
+        :data-tip="b.label"
+      >
+        <div class="usage-bar-track">
+          <div
+            class="usage-bar-fill"
+            :style="{ height: b.pct + '%', background: b.color, borderColor: b.borderColor, boxShadow: b.isPeak ? `0 0 10px ${b.color}` : 'none' }"
+          ></div>
+        </div>
+        <span class="usage-bar-day">{{ b.day }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -77,26 +87,41 @@ function fmtDayLabel(ts, prefix) {
 const lastDayLabel = computed(() => fmtDayLabel(stats.value?.lastDayTs, 'Last day'))
 const peakDayLabel = computed(() => fmtDayLabel(stats.value?.peakDayTs, 'Peak day'))
 
-const sparkW = 120
+// dark blue → green → orange based on usage ratio
+function usageColor(ratio, alpha = 1) {
+  const blue   = [30,  80,  180]
+  const green  = [34, 197,  94]
+  const orange = [249, 115,  22]
+  let r, g, b
+  if (ratio <= 0.5) {
+    const t = ratio * 2
+    r = Math.round(blue[0] + (green[0] - blue[0]) * t)
+    g = Math.round(blue[1] + (green[1] - blue[1]) * t)
+    b = Math.round(blue[2] + (green[2] - blue[2]) * t)
+  } else {
+    const t = (ratio - 0.5) * 2
+    r = Math.round(green[0] + (orange[0] - green[0]) * t)
+    g = Math.round(green[1] + (orange[1] - green[1]) * t)
+    b = Math.round(green[2] + (orange[2] - green[2]) * t)
+  }
+  return `rgba(${r},${g},${b},${alpha})`
+}
 
-const sparkPoints = computed(() => {
-  const costs = stats.value?.dailyCosts
-  if (!costs?.length) return ''
-  const max = Math.max(...costs.map(d => d.cost), 0.0001)
-  return costs.map((d, i) => {
-    const x = (i / (costs.length - 1 || 1)) * (sparkW - 8) + 4
-    const y = 24 - (d.cost / max) * 20
-    return `${x},${y}`
-  }).join(' ')
-})
-
-const sparkDots = computed(() => {
+const bars = computed(() => {
   const costs = stats.value?.dailyCosts
   if (!costs?.length) return []
   const max = Math.max(...costs.map(d => d.cost), 0.0001)
-  return costs.map((d, i) => ({
-    x: (i / (costs.length - 1 || 1)) * (sparkW - 8) + 4,
-    y: 24 - (d.cost / max) * 20
-  }))
+  return costs.map(d => {
+    const ratio = d.cost / max
+    const date = new Date(d.ts * 1000)
+    return {
+      pct: Math.max(ratio * 100, d.cost > 0 ? 4 : 0),
+      isPeak: d.cost === max && d.cost > 0,
+      color: usageColor(ratio, 0.82),
+      borderColor: usageColor(ratio, 0.5),
+      day: date.getUTCDate(),
+      label: `${date.toLocaleString('en', { month: 'short', timeZone: 'UTC' })} ${date.getUTCDate()}: $${d.cost.toFixed(2)}`
+    }
+  })
 })
 </script>
