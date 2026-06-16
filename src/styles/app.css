@@ -1507,6 +1507,12 @@ textarea {
   opacity: 0.45;
 }
 
+.chip-sub {
+  font-size: 10px;
+  color: #7c6fa0;
+  margin-top: 1px;
+}
+
 .usage-refresh {
   flex: 0 0 32px;
   width: 32px;
