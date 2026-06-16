@@ -1003,6 +1003,53 @@ app.post(
   }
 )
 
+app.get("/usage-stats", async (req, res) => {
+  try {
+    const now = Math.floor(Date.now() / 1000)
+    const d = new Date()
+    const monthStart = Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1) / 1000)
+
+    const headers = { Authorization: `Bearer ${process.env.OPENAI_ADMIN_KEY}` }
+
+    const costsRes = await fetch(
+      `https://api.openai.com/v1/organization/costs?start_time=${monthStart}&end_time=${now}&bucket_width=1d&limit=31`,
+      { headers }
+    )
+
+    if (!costsRes.ok) {
+      const err = await costsRes.json()
+      return res.status(costsRes.status).json({ error: err?.error?.message || "Costs API error" })
+    }
+
+    const costsData = await costsRes.json()
+    const dailyCosts = []
+
+    for (const bucket of costsData.data || []) {
+      const amount = bucket.results?.reduce((s, r) => s + (parseFloat(r.amount?.value) || 0), 0) || 0
+      dailyCosts.push({ ts: bucket.start_time, cost: amount })
+    }
+
+    const activeDays = dailyCosts.filter(d => d.cost > 0)
+    const monthCost = activeDays.reduce((s, d) => s + d.cost, 0)
+    const lastDay = dailyCosts.at(-1) ?? null
+    const peakDay = activeDays.reduce((best, d) => d.cost > best.cost ? d : best, { cost: 0, ts: null })
+    const avgPerDay = activeDays.length > 0 ? monthCost / activeDays.length : null
+
+    res.json({
+      monthCost,
+      lastDayCost: lastDay?.cost ?? null,
+      lastDayTs: lastDay?.ts ?? null,
+      peakDayCost: peakDay.ts ? peakDay.cost : null,
+      peakDayTs: peakDay.ts ?? null,
+      avgPerDay,
+      dailyCosts: dailyCosts.slice(-7)
+    })
+  } catch (err) {
+    console.error("Usage stats error:", err)
+    res.status(500).json({ error: err.message || String(err) })
+  }
+})
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
 })

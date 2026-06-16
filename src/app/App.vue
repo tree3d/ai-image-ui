@@ -225,6 +225,8 @@
 
 
     <section class="right-panel">
+      <UsageDashboard />
+
       <GalleryGrid
         v-if="jobs.length"
         v-model="galleryScale"
@@ -281,6 +283,7 @@ import ErrorModal from "../components/modal/ErrorModal.vue"
 import ImageModal from "../components/modal/ImageModal.vue"
 import OptionSelector from "../components/prompt/OptionSelector.vue"
 import GalleryGrid from "../components/gallery/GalleryGrid.vue"
+import UsageDashboard from "../components/stats/UsageDashboard.vue"
 import ReferenceUploader from "../components/reference/ReferenceUploader.vue"
 import AppIcon from "../components/ui/AppIcon.vue"
 import { useGalleryScale } from "../composables/useGalleryScale"
