@@ -267,7 +267,8 @@ import { qualityOptions, sizeOptions } from "../constants/options"
 import {
   cropStitchInpaintRequest,
   generateImageRequest,
-  outpaintCropStitchRequest
+  outpaintCropStitchRequest,
+  pollJobStatus
 } from "../api/generation"
 import {
   deleteInputImageRequest,
@@ -1211,28 +1212,30 @@ const startQueuedJob = (job, { countsTowardLimit = true } = {}) => {
 
   ;(async () => {
     try {
-      let res
+      let startRes
 
       if (job.type === "outpaint") {
-        res = await outpaintCropStitchRequest(job.payload)
+        startRes = await outpaintCropStitchRequest(job.payload)
       } else if (job.type === "crop-stitch-inpaint") {
-        res = await cropStitchInpaintRequest(job.payload)
+        startRes = await cropStitchInpaintRequest(job.payload)
       } else {
-        res = await generateImageRequest({
+        startRes = await generateImageRequest({
           prompt: job.prompt,
           size: job.size,
           quality: job.quality
         })
       }
 
-      job.filename = res.data.filename || `nt-${randomHash()}.png`
+      const result = await pollJobStatus(startRes.data.jobId)
 
-      if (res.data.image) {
-        job.image = `data:${res.data.mimeType || "image/png"};base64,${res.data.image}`
-      } else if (res.data.filename) {
-        job.image = `/output/${res.data.filename}?t=${Date.now()}`
+      job.filename = result.filename || `nt-${randomHash()}.png`
+
+      if (result.image) {
+        job.image = `data:${result.mimeType || "image/png"};base64,${result.image}`
+      } else if (result.filename) {
+        job.image = `/output/${result.filename}?t=${Date.now()}`
       } else {
-        throw new Error("Request succeeded but returned no image or filename")
+        throw new Error("Job completed but returned no image or filename")
       }
 
       job.status = "done"

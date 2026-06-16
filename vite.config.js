@@ -13,6 +13,7 @@ export default defineConfig({
       "/last-prompt": "http://localhost:5010",
       "/outpaint-crop-stitch": "http://127.0.0.1:5010",
       "/inpaint-crop-stitch": "http://127.0.0.1:5010",
+      "/status": "http://localhost:5010",
     }
   }
 })

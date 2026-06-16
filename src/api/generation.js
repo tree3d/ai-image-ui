@@ -13,3 +13,14 @@ export const outpaintCropStitchRequest = (payload) => {
     headers: { "Content-Type": "multipart/form-data" }
   })
 }
+
+export const pollJobStatus = async (jobId, { intervalMs = 2000, maxAttempts = 90 } = {}) => {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const res = await api.get(`/status/${jobId}`)
+    const { status, result, error } = res.data
+    if (status === "done") return result
+    if (status === "error") throw new Error(error || "Background job failed")
+    await new Promise(resolve => setTimeout(resolve, intervalMs))
+  }
+  throw new Error("Job timed out after 3 minutes")
+}
