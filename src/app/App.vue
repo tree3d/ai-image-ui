@@ -831,10 +831,13 @@ const initMaskCanvas = () => {
 
   if (!canvas || !img) return
 
-  // Use natural image resolution for the canvas buffer so painting coords
-  // map 1:1 to image pixels regardless of display scale or zoom level.
+  // Buffer at natural resolution for pixel-accurate masking.
+  // CSS forced to 100% so it fills the stage regardless of buffer size
+  // (without this the canvas renders at naturalHeight px tall, overflowing below the image).
   canvas.width = img.naturalWidth
   canvas.height = img.naturalHeight
+  canvas.style.width = '100%'
+  canvas.style.height = '100%'
 
   const ctx = canvas.getContext("2d")
   maskCtx.value = ctx
