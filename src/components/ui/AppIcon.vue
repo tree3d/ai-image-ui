@@ -76,6 +76,14 @@
       <path d="m7 10 5 5 5-5" />
       <path d="M5 21h14" />
     </template>
+
+    <template v-else-if="name === 'clapperboard'">
+      <rect x="3" y="9" width="18" height="12" rx="2" />
+      <path d="M3 9V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2" />
+      <path d="M7 5 5 9" />
+      <path d="M12 5l-2 4" />
+      <path d="M17 5l-2 4" />
+    </template>
   </svg>
 </template>
 

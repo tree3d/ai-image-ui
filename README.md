@@ -1,6 +1,6 @@
 # AI Image UI GPT-2 Native
 
-Local Vue + Express app for generating, editing, inpainting, and outpainting images with OpenAI image models. The frontend manages prompts, reference images, masks, gallery jobs, and downloads; the backend handles uploads, image generation requests, crop-stitch inpainting, and runtime file storage.
+Local Vue + Express app for generating, editing, inpainting, outpainting, and animating images. Uses OpenAI gpt-image-1 for image generation and fal.ai xai/grok-imagine-video for image-to-video animation. The frontend manages prompts, reference images, masks, a job gallery, and a usage/cost stats dashboard; the backend handles uploads, generation, crop-stitch inpainting, background jobs, and runtime file storage.
 
 ## Setup
 
@@ -39,6 +39,12 @@ Optionally tune the cost-per-image estimate used to approximate image counts (ad
 
 ```bash
 COST_PER_IMAGE_ESTIMATE=0.21
+```
+
+For image-to-video animation via fal.ai, set a fal.ai API key (get one at fal.ai/dashboard/keys):
+
+```bash
+FAL_KEY=your-fal-api-key-here
 ```
 
 ## Startup Commands

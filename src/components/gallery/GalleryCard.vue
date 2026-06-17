@@ -30,8 +30,19 @@
       <AppIcon :name="job.copied ? 'check' : 'copy'" />
     </button>
 
+    <video
+      v-if="job.status === 'done' && job.video"
+      :src="job.video"
+      class="gallery-img gallery-video"
+      autoplay
+      loop
+      muted
+      playsinline
+      @click="$emit('open-video', job.video)"
+    />
+
     <img
-      v-if="job.status === 'done' && job.image"
+      v-else-if="job.status === 'done' && job.image"
       :src="job.image"
       class="gallery-img"
       draggable="true"
@@ -42,7 +53,7 @@
 
     <div v-else-if="job.status === 'generating'" class="job-placeholder">
       <div class="status-spinner"></div>
-      <strong>Generating...</strong>
+      <strong>{{ job.type === 'animate' ? 'Animating...' : 'Generating...' }}</strong>
       <small>{{ job.prompt }}</small>
     </div>
 
@@ -56,11 +67,11 @@
       <small>{{ job.error }}</small>
     </div>
 
-    <div v-if="job.status === 'done' && job.image" class="gallery-actions">
+    <div v-if="job.status === 'done' && (job.image || job.video)" class="gallery-actions">
       <button
         type="button"
-        aria-label="Enlarge image"
-        @click.stop="$emit('open', job.image)"
+        aria-label="Enlarge"
+        @click.stop="job.video ? $emit('open-video', job.video) : $emit('open', job.image)"
       >
         <AppIcon name="search" />
         <span class="gallery-action-label">Enlarge</span>
@@ -69,9 +80,21 @@
       <span class="gallery-action-divider"></span>
 
       <button
+        v-if="job.image && !job.video"
         type="button"
-        aria-label="Download image"
-        @click.stop.prevent="$emit('download', job.image, job.filename)"
+        aria-label="Animate image"
+        @click.stop="$emit('animate', job)"
+      >
+        <AppIcon name="clapperboard" />
+        <span class="gallery-action-label">Animate</span>
+      </button>
+
+      <span v-if="job.image && !job.video" class="gallery-action-divider"></span>
+
+      <button
+        type="button"
+        aria-label="Download"
+        @click.stop.prevent="$emit('download', job.video || job.image, job.filename)"
       >
         <AppIcon name="download" />
         <span class="gallery-action-label">Download</span>
@@ -85,18 +108,17 @@ import { computed } from "vue"
 import AppIcon from "../ui/AppIcon.vue"
 
 const props = defineProps({
-  job: {
-    type: Object,
-    required: true
-  }
+  job: { type: Object, required: true }
 })
 
 defineEmits([
+  "animate",
   "copy",
   "download",
   "drag-end",
   "drag-start",
   "open",
+  "open-video",
   "remove"
 ])
 

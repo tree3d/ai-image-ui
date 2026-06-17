@@ -7,11 +7,13 @@
       v-for="job in jobs"
       :key="job.id"
       :job="job"
+      @animate="$emit('animate', $event)"
       @copy="$emit('copy', $event)"
       @download="(src, filename) => $emit('download', src, filename)"
       @drag-end="$emit('drag-end')"
       @drag-start="(event, draggedJob) => $emit('drag-start', event, draggedJob)"
       @open="$emit('open', $event)"
+      @open-video="$emit('open-video', $event)"
       @remove="$emit('remove', $event)"
     />
   </div>
@@ -43,11 +45,13 @@ const props = defineProps({
 })
 
 const emit = defineEmits([
+  "animate",
   "copy",
   "download",
   "drag-end",
   "drag-start",
   "open",
+  "open-video",
   "purge",
   "remove",
   "update:modelValue"

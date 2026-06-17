@@ -233,11 +233,13 @@
         :jobs="jobs"
         :columns="galleryColumns"
         :percent="galleryPercent"
+        @animate="animateJob"
         @copy="copyJobText"
         @download="downloadImage"
         @drag-end="isDraggingGallery = false; referenceDropIndex = null"
         @drag-start="onGalleryDragStart"
         @open="openModal"
+        @open-video="openVideoModal"
         @purge="purgePreviewImages"
         @remove="removePreviewJob"
       />
@@ -260,6 +262,28 @@
       @close="closeModal"
     />
 
+    <AnimateModal
+      :open="animateModalOpen"
+      :source-job="animateSourceJob"
+      :motion-prompt="prompt"
+      @close="animateModalOpen = false"
+      @submit="submitAnimateJob"
+    />
+
+    <div v-if="videoModalOpen" class="modal" @click="videoModalOpen = false">
+      <video
+        :src="videoModalSrc"
+        class="modal-img"
+        autoplay
+        loop
+        muted
+        playsinline
+        controls
+        @click.stop
+      />
+      <button class="modal-close" @click="videoModalOpen = false"><span>×</span></button>
+    </div>
+
   </div>
 </template>
 
@@ -267,6 +291,7 @@
 import { ref, onMounted, onUnmounted, watch } from "vue"
 import { qualityOptions, sizeOptions } from "../constants/options"
 import {
+  animateRequest,
   cropStitchInpaintRequest,
   generateImageRequest,
   outpaintCropStitchRequest,
@@ -279,6 +304,7 @@ import {
   saveInputOrderRequest,
   uploadReferenceImages
 } from "../api/inputImages"
+import AnimateModal from "../components/modal/AnimateModal.vue"
 import ErrorModal from "../components/modal/ErrorModal.vue"
 import ImageModal from "../components/modal/ImageModal.vue"
 import OptionSelector from "../components/prompt/OptionSelector.vue"
@@ -1221,6 +1247,13 @@ const startQueuedJob = (job, { countsTowardLimit = true } = {}) => {
         startRes = await outpaintCropStitchRequest(job.payload)
       } else if (job.type === "crop-stitch-inpaint") {
         startRes = await cropStitchInpaintRequest(job.payload)
+      } else if (job.type === "animate") {
+        startRes = await animateRequest({
+          filename: job.sourceFilename,
+          prompt: job.prompt,
+          duration: job.duration,
+          resolution: job.resolution
+        })
       } else {
         startRes = await generateImageRequest({
           prompt: job.prompt,
@@ -1229,11 +1262,13 @@ const startQueuedJob = (job, { countsTowardLimit = true } = {}) => {
         })
       }
 
-      const result = await pollJobStatus(startRes.data.jobId)
+      const result = await pollJobStatus(startRes.data.jobId, { maxAttempts: 150 })
 
-      job.filename = result.filename || `nt-${randomHash()}.png`
+      job.filename = result.filename || `nt-${randomHash()}.mp4`
 
-      if (result.image) {
+      if (job.type === "animate") {
+        job.video = `/output/${result.filename}?t=${Date.now()}`
+      } else if (result.image) {
         job.image = `data:${result.mimeType || "image/png"};base64,${result.image}`
       } else if (result.filename) {
         job.image = `/output/${result.filename}?t=${Date.now()}`
@@ -1290,6 +1325,46 @@ const processQueue = () => {
 
     startQueuedJob(job)
   }
+}
+
+const videoModalOpen = ref(false)
+const videoModalSrc = ref(null)
+
+const openVideoModal = (src) => {
+  videoModalSrc.value = src
+  videoModalOpen.value = true
+}
+
+const animateModalOpen = ref(false)
+const animateSourceJob = ref(null)
+
+const animateJob = (sourceJob) => {
+  animateSourceJob.value = sourceJob
+  animateModalOpen.value = true
+}
+
+const submitAnimateJob = ({ duration, resolution, prompt: modalPrompt }) => {
+  const sourceJob = animateSourceJob.value
+  if (!sourceJob) return
+
+  const job = {
+    id: crypto.randomUUID(),
+    type: "animate",
+    sourceFilename: sourceJob.filename,
+    sourceImage: sourceJob.image,
+    prompt: modalPrompt?.trim() || prompt.value.trim(),
+    duration,
+    resolution,
+    status: "queued",
+    image: sourceJob.image,
+    video: null,
+    filename: null,
+    error: null,
+    finishedAt: null
+  }
+
+  jobs.value.unshift(job)
+  startQueuedJob(job, { countsTowardLimit: false })
 }
 
 const randomHash = () => {

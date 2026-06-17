@@ -8,6 +8,7 @@ import mime from "mime-types"
 import sharp from "sharp"
 import { toFile } from "openai/uploads"
 import OpenAI from "openai"
+import { fal } from "@fal-ai/client"
 import dotenv from "dotenv"
 import {
   CROP_STITCH_DIR,
@@ -18,6 +19,8 @@ import {
 } from "./utils/paths.js"
 
 dotenv.config()
+
+fal.config({ credentials: process.env.FAL_KEY })
 
 const app = express()
 app.use(express.json())
@@ -1059,6 +1062,62 @@ app.get("/usage-stats", async (req, res) => {
     console.error("Usage stats error:", err)
     res.status(500).json({ error: err.message || String(err) })
   }
+})
+
+app.post("/animate", (req, res) => {
+  const { filename, prompt, duration = 6, resolution = "720p" } = req.body
+
+  if (!filename) return res.status(400).json({ error: "filename is required" })
+  if (!prompt?.trim()) return res.status(400).json({ error: "prompt is required" })
+
+  const sourcePath = path.join(OUTPUT_DIR, path.basename(filename))
+  if (!fs.existsSync(sourcePath)) {
+    return res.status(404).json({ error: "Source image not found" })
+  }
+
+  const jobId = crypto.randomBytes(8).toString("hex")
+  pendingJobs.set(jobId, { status: "pending" })
+  res.json({ jobId })
+
+  ;(async () => {
+    try {
+      const imageBuffer = await fs.promises.readFile(sourcePath)
+      const imageBlob = new Blob([imageBuffer], { type: "image/png" })
+      const imageUrl = await fal.storage.upload(imageBlob)
+
+      const result = await fal.subscribe("xai/grok-imagine-video/image-to-video", {
+        input: {
+          image_url: imageUrl,
+          prompt: prompt.trim(),
+          duration,
+          resolution,
+          aspect_ratio: "auto"
+        }
+      })
+
+      const videoUrl = result.data.video.url
+      const videoRes = await fetch(videoUrl)
+      if (!videoRes.ok) throw new Error("Failed to download video from fal.ai")
+
+      const videoBuffer = Buffer.from(await videoRes.arrayBuffer())
+      const videoFilename = `nt-${crypto.randomBytes(6).toString("hex")}.mp4`
+      const videoPath = path.join(OUTPUT_DIR, videoFilename)
+      await fs.promises.writeFile(videoPath, videoBuffer)
+
+      pendingJobs.set(jobId, {
+        status: "done",
+        completedAt: Date.now(),
+        result: { filename: videoFilename, mimeType: "video/mp4" }
+      })
+    } catch (err) {
+      console.error("Animate error:", err)
+      pendingJobs.set(jobId, {
+        status: "error",
+        completedAt: Date.now(),
+        error: err?.message || String(err)
+      })
+    }
+  })()
 })
 
 app.listen(PORT, () => {
