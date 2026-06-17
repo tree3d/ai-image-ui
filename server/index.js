@@ -9,6 +9,7 @@ import sharp from "sharp"
 import { toFile } from "openai/uploads"
 import OpenAI from "openai"
 import { fal } from "@fal-ai/client"
+import cors from "cors"
 import dotenv from "dotenv"
 import {
   CROP_STITCH_DIR,
@@ -23,7 +24,8 @@ dotenv.config()
 fal.config({ credentials: process.env.FAL_KEY })
 
 const app = express()
-app.use(express.json())
+app.use(cors({ origin: "http://localhost:5174" }))
+app.use(express.json({ limit: "10mb" }))
 
 const PORT = process.env.PORT || 5010
 
