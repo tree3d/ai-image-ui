@@ -576,24 +576,27 @@ app.post(
       const sCh = softResult.info.channels
       const pixelCount = crop.width * crop.height
 
-      const combinedRaw = Buffer.allocUnsafe(pixelCount)
+      // Build feathered alpha values (max of hard threshold + soft blur)
+      const alphaValues = Buffer.allocUnsafe(pixelCount)
       for (let i = 0; i < pixelCount; i++) {
-        combinedRaw[i] = Math.max(hData[i * hCh], sData[i * sCh])
+        alphaValues[i] = Math.max(hData[i * hCh], sData[i * sCh])
       }
 
-      const alphaMaskPng = await sharp(combinedRaw, {
-        raw: { width: crop.width, height: crop.height, channels: 1 }
-      }).png().toBuffer()
-
+      // Resize edited crop to match crop dimensions
       const editedCropResized = await sharp(Buffer.from(editedCropBase64, "base64"))
         .resize(crop.width, crop.height, { fit: "cover", position: "center" })
-        .png()
+        .ensureAlpha()
+        .raw()
         .toBuffer()
 
-      const clippedEditedCrop = await sharp(editedCropResized)
-        .composite([{ input: alphaMaskPng, blend: "dest-in" }])
-        .png()
-        .toBuffer()
+      // Assign feathered alpha directly — dest-in doesn't work reliably with grayscale masks in sharp
+      for (let i = 0; i < pixelCount; i++) {
+        editedCropResized[i * 4 + 3] = alphaValues[i]
+      }
+
+      const clippedEditedCrop = await sharp(editedCropResized, {
+        raw: { width: crop.width, height: crop.height, channels: 4 }
+      }).png().toBuffer()
 
       const finalBuffer = await sharp(sourcePath)
         .composite([{ input: clippedEditedCrop, left: crop.left, top: crop.top, blend: "over" }])

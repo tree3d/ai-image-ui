@@ -831,13 +831,10 @@ const initMaskCanvas = () => {
 
   if (!canvas || !img) return
 
-  const rect = img.getBoundingClientRect()
-
-  canvas.width = rect.width
-  canvas.height = rect.height
-
-  canvas.style.width = `${rect.width}px`
-  canvas.style.height = `${rect.height}px`
+  // Use natural image resolution for the canvas buffer so painting coords
+  // map 1:1 to image pixels regardless of display scale or zoom level.
+  canvas.width = img.naturalWidth
+  canvas.height = img.naturalHeight
 
   const ctx = canvas.getContext("2d")
   maskCtx.value = ctx
@@ -848,9 +845,15 @@ const initMaskCanvas = () => {
 const getCanvasPoint = (event) => {
   const rect = maskCanvas.value.getBoundingClientRect()
 
+  // rect dimensions are display pixels (affected by CSS zoom transform).
+  // canvas.width/height are natural image pixels.
+  // Compute scale to convert screen offset → canvas pixel coordinates.
+  const scaleX = maskCanvas.value.width / rect.width
+  const scaleY = maskCanvas.value.height / rect.height
+
   return {
-    x: (event.clientX - rect.left) / maskZoom.value,
-    y: (event.clientY - rect.top) / maskZoom.value
+    x: (event.clientX - rect.left) * scaleX,
+    y: (event.clientY - rect.top) * scaleY
   }
 }
 
