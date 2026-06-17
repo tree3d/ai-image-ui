@@ -1083,6 +1083,4 @@ app.post("/animate", (req, res) => {
   })()
 })
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`)
-})
+export { app, PORT }

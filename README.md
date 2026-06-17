@@ -73,6 +73,22 @@ The Express server runs on:
 http://localhost:5010
 ```
 
+## Tests
+
+Run the server-side test suite once:
+
+```bash
+npm test
+```
+
+Watch mode (re-runs on file changes):
+
+```bash
+npm run test:watch
+```
+
+Tests live under `server/__tests__/` and use [Vitest](https://vitest.dev/) with [supertest](https://github.com/ladjs/supertest). All external dependencies (OpenAI, fal.ai, sharp, fs) are mocked — no real API calls or disk access occur.
+
 ## Runtime Folders
 
 Generated and uploaded image files are stored locally in ignored runtime folders:
