@@ -8,6 +8,7 @@
         v-model:reference-drop-index="referenceDropIndex"
         :deleting-images="deletingImages"
         :is-dragging-gallery="isDraggingGallery"
+        @animate-reference="file => animateJob({ image: file.url, filename: file.filename })"
         @delete-input-image="deleteInputImage"
         @gallery-drop="onGalleryDrop"
         @gallery-drop-at="onGalleryDropAt"

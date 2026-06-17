@@ -1063,8 +1063,14 @@ app.post("/animate", (req, res) => {
   if (!filename) return res.status(400).json({ error: "filename is required" })
   if (!prompt?.trim()) return res.status(400).json({ error: "prompt is required" })
 
-  const sourcePath = path.join(OUTPUT_DIR, path.basename(filename))
-  if (!fs.existsSync(sourcePath)) {
+  const basename = path.basename(filename)
+  const sourcePath = fs.existsSync(path.join(OUTPUT_DIR, basename))
+    ? path.join(OUTPUT_DIR, basename)
+    : fs.existsSync(path.join(INPUT_DIR, basename))
+      ? path.join(INPUT_DIR, basename)
+      : null
+
+  if (!sourcePath) {
     return res.status(404).json({ error: "Source image not found" })
   }
 

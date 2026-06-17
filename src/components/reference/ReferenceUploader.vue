@@ -115,6 +115,18 @@
               >
                 <AppIcon name="reset" />
               </button>
+
+              <button
+                class="thumb-mode-btn"
+                type="button"
+                title="Animate this image"
+                aria-label="Animate this image"
+                @mousedown.stop
+                @touchstart.stop
+                @click.stop.prevent="$emit('animate-reference', file)"
+              >
+                <AppIcon name="clapperboard" />
+              </button>
             </div>
 
             <div class="thumb-number">{{ index + 1 }}</div>
@@ -158,6 +170,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits([
+  "animate-reference",
   "delete-input-image",
   "gallery-drop",
   "gallery-drop-at",
