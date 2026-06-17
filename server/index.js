@@ -1067,6 +1067,10 @@ app.get("/usage-stats", async (req, res) => {
 app.post("/animate", (req, res) => {
   const { filename, prompt, duration = 6, resolution = "720p" } = req.body
 
+  if (!process.env.FAL_KEY) {
+    return res.status(401).json({ error: "FAL_KEY is not configured. Add FAL_KEY to your .env file to enable animation." })
+  }
+
   if (!filename) return res.status(400).json({ error: "filename is required" })
   if (!prompt?.trim()) return res.status(400).json({ error: "prompt is required" })
 

@@ -1292,6 +1292,11 @@ const startQueuedJob = (job, { countsTowardLimit = true } = {}) => {
       job.finishedAt = Date.now()
       job.error = formatRequestError(err, "Generation failed")
 
+      if (job.type === "animate" && err?.response?.status === 401) {
+        errorMessage.value = err.response.data?.error || "FAL_KEY is not configured. Add FAL_KEY to your .env file to enable animation."
+        errorOpen.value = true
+      }
+
       jobs.value = jobs.value.map(j =>
         j.id === job.id ? { ...job } : j
       )
