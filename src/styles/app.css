@@ -44,13 +44,12 @@ textarea {
 .app::before {
   content: "";
   position: fixed;
-  inset: -8%;
+  inset: 0;
   z-index: -2;
-  background: url("/m3t3or-winged-background.webp") 73% center / cover no-repeat;
+  background: url("/background-010111.png") center center / cover no-repeat;
   filter: saturate(1.06) contrast(1.04);
-  opacity: 0.92;
+  opacity: 0.55;
   pointer-events: none;
-  transform: rotate(-4deg) scale(1.05);
 }
 
 .app::after {
