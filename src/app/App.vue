@@ -1242,28 +1242,27 @@ const startQueuedJob = (job, { countsTowardLimit = true } = {}) => {
 
   ;(async () => {
     try {
-      let startRes
+      let result
 
-      if (job.type === "outpaint") {
-        startRes = await outpaintCropStitchRequest(job.payload)
-      } else if (job.type === "crop-stitch-inpaint") {
-        startRes = await cropStitchInpaintRequest(job.payload)
-      } else if (job.type === "animate") {
-        startRes = await animateRequest({
+      if (job.type === "animate") {
+        const startRes = await animateRequest({
           filename: job.sourceFilename,
           prompt: job.prompt,
           duration: job.duration,
           resolution: job.resolution
         })
+        result = await pollJobStatus(startRes.data.jobId, { maxAttempts: 150 })
+      } else if (job.type === "outpaint") {
+        result = (await outpaintCropStitchRequest(job.payload)).data
+      } else if (job.type === "crop-stitch-inpaint") {
+        result = (await cropStitchInpaintRequest(job.payload)).data
       } else {
-        startRes = await generateImageRequest({
+        result = (await generateImageRequest({
           prompt: job.prompt,
           size: job.size,
           quality: job.quality
-        })
+        })).data
       }
-
-      const result = await pollJobStatus(startRes.data.jobId, { maxAttempts: 150 })
 
       job.filename = result.filename || `nt-${randomHash()}.mp4`
 

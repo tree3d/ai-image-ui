@@ -494,7 +494,7 @@ app.post(
     { name: "mask", maxCount: 1 },
     { name: "references", maxCount: 4 }
   ]),
-  (req, res) => {
+  async (req, res) => {
     const prompt = req.body.prompt
     const size = req.body.size || "1024x1024"
     const quality = req.body.quality || "medium"
@@ -512,118 +512,104 @@ app.post(
       return res.status(400).json({ error: "Source image and mask are required" })
     }
 
-    const jobId = randomHash()
-    pendingJobs.set(jobId, { status: "pending" })
-    res.json({ jobId })
+    try {
+      const sourceMeta = await sharp(sourcePath).metadata()
 
-    ;(async () => {
-      try {
-        const sourceMeta = await sharp(sourcePath).metadata()
+      const normalizedMaskPath = path.join(CROP_STITCH_DIR, `mask-normalized-${randomHash()}.png`)
+      await sharp(maskPath)
+        .resize(sourceMeta.width, sourceMeta.height, { fit: "fill" })
+        .png()
+        .toFile(normalizedMaskPath)
 
-        const normalizedMaskPath = path.join(CROP_STITCH_DIR, `mask-normalized-${randomHash()}.png`)
-        await sharp(maskPath)
-          .resize(sourceMeta.width, sourceMeta.height, { fit: "fill" })
-          .png()
-          .toFile(normalizedMaskPath)
+      const maskInfo = await getMaskInfo(normalizedMaskPath)
+      if (!maskInfo) throw new Error("Mask is empty — paint the area to edit before generating.")
 
-        const maskInfo = await getMaskInfo(normalizedMaskPath)
-        if (!maskInfo) throw new Error("Mask is empty — paint the area to edit before generating.")
+      const crop = buildCropAroundMask({
+        bbox: maskInfo.bbox,
+        sourceWidth: sourceMeta.width,
+        sourceHeight: sourceMeta.height,
+        padding
+      })
 
-        const crop = buildCropAroundMask({
-          bbox: maskInfo.bbox,
-          sourceWidth: sourceMeta.width,
-          sourceHeight: sourceMeta.height,
-          padding
-        })
+      console.log("CROP-STITCH CROP:", crop, "MASK BBOX:", maskInfo.bbox, "REFS:", referenceUploads.length)
 
-        console.log("CROP-STITCH CROP:", crop, "MASK BBOX:", maskInfo.bbox, "REFS:", referenceUploads.length)
+      const sourceCropBuffer = await sharp(sourcePath).extract(crop).png().toBuffer()
+      const openAIMaskCropBuffer = await createOpenAIMaskCrop({ maskInfo, crop })
 
-        const sourceCropBuffer = await sharp(sourcePath).extract(crop).png().toBuffer()
-        const openAIMaskCropBuffer = await createOpenAIMaskCrop({ maskInfo, crop })
+      const editImages = [
+        await bufferToOpenAIFile(sourceCropBuffer, "source-crop.png", "image/png")
+      ]
 
-        const editImages = [
-          await bufferToOpenAIFile(sourceCropBuffer, "source-crop.png", "image/png")
-        ]
-
-        for (let i = 0; i < referenceUploads.length; i++) {
-          const refBuffer = await sharp(referenceUploads[i].path).png().toBuffer()
-          editImages.push(await bufferToOpenAIFile(refBuffer, `reference-${i + 1}.png`, "image/png"))
-        }
-
-        const apiResult = await openai.images.edit({
-          model: process.env.OPENAI_IMAGE_MODEL || "gpt-image-2",
-          image: editImages,
-          mask: await bufferToOpenAIFile(openAIMaskCropBuffer, "mask-crop.png", "image/png"),
-          prompt: "Edit only the transparent masked area. Preserve all unmasked image content exactly. " + prompt.trim(),
-          size,
-          quality
-        })
-
-        let editedCropBase64 = apiResult.data?.[0]?.b64_json
-        const editedCropUrl = apiResult.data?.[0]?.url
-        if (!editedCropBase64 && editedCropUrl) {
-          editedCropBase64 = Buffer.from(await (await fetch(editedCropUrl)).arrayBuffer()).toString("base64")
-        }
-        if (!editedCropBase64) throw new Error("No edited crop returned from API")
-
-        const maskAlphaCropped = await sharp(normalizedMaskPath)
-          .extractChannel("alpha")
-          .extract({ left: crop.left, top: crop.top, width: crop.width, height: crop.height })
-          .png()
-          .toBuffer()
-
-        const hardResult = await sharp(maskAlphaCropped).threshold(128).raw().toBuffer({ resolveWithObject: true })
-        const softResult = await sharp(maskAlphaCropped).dilate(3).blur(14).raw().toBuffer({ resolveWithObject: true })
-
-        const hData = hardResult.data
-        const sData = softResult.data
-        const hCh = hardResult.info.channels
-        const sCh = softResult.info.channels
-        const pixelCount = crop.width * crop.height
-
-        const combinedRaw = Buffer.allocUnsafe(pixelCount)
-        for (let i = 0; i < pixelCount; i++) {
-          combinedRaw[i] = Math.max(hData[i * hCh], sData[i * sCh])
-        }
-
-        const alphaMaskPng = await sharp(combinedRaw, {
-          raw: { width: crop.width, height: crop.height, channels: 1 }
-        }).png().toBuffer()
-
-        const editedCropResized = await sharp(Buffer.from(editedCropBase64, "base64"))
-          .resize(crop.width, crop.height, { fit: "cover", position: "center" })
-          .png()
-          .toBuffer()
-
-        const clippedEditedCrop = await sharp(editedCropResized)
-          .composite([{ input: alphaMaskPng, blend: "dest-in" }])
-          .png()
-          .toBuffer()
-
-        const finalBuffer = await sharp(sourcePath)
-          .composite([{ input: clippedEditedCrop, left: crop.left, top: crop.top, blend: "over" }])
-          .png()
-          .toBuffer()
-
-        const hash = randomHash()
-        const filename = `nt-${hash}.png`
-        fs.writeFileSync(path.join(OUTPUT_DIR, filename), finalBuffer)
-        fs.writeFileSync(path.join(OUTPUT_DIR, `nt-${hash}.txt`), prompt.trim(), "utf-8")
-
-        pendingJobs.set(jobId, {
-          status: "done",
-          completedAt: Date.now(),
-          result: { image: finalBuffer.toString("base64"), mimeType: "image/png", filename }
-        })
-      } catch (err) {
-        console.error("CROP STITCH ERROR:", err)
-        pendingJobs.set(jobId, {
-          status: "error",
-          completedAt: Date.now(),
-          error: err?.message || String(err)
-        })
+      for (let i = 0; i < referenceUploads.length; i++) {
+        const refBuffer = await sharp(referenceUploads[i].path).png().toBuffer()
+        editImages.push(await bufferToOpenAIFile(refBuffer, `reference-${i + 1}.png`, "image/png"))
       }
-    })()
+
+      const apiResult = await openai.images.edit({
+        model: process.env.OPENAI_IMAGE_MODEL || "gpt-image-2",
+        image: editImages,
+        mask: await bufferToOpenAIFile(openAIMaskCropBuffer, "mask-crop.png", "image/png"),
+        prompt: "Edit only the transparent masked area. Preserve all unmasked image content exactly. " + prompt.trim(),
+        size,
+        quality
+      })
+
+      let editedCropBase64 = apiResult.data?.[0]?.b64_json
+      const editedCropUrl = apiResult.data?.[0]?.url
+      if (!editedCropBase64 && editedCropUrl) {
+        editedCropBase64 = Buffer.from(await (await fetch(editedCropUrl)).arrayBuffer()).toString("base64")
+      }
+      if (!editedCropBase64) throw new Error("No edited crop returned from API")
+
+      const maskAlphaCropped = await sharp(normalizedMaskPath)
+        .extractChannel("alpha")
+        .extract({ left: crop.left, top: crop.top, width: crop.width, height: crop.height })
+        .png()
+        .toBuffer()
+
+      const hardResult = await sharp(maskAlphaCropped).threshold(128).raw().toBuffer({ resolveWithObject: true })
+      const softResult = await sharp(maskAlphaCropped).dilate(3).blur(14).raw().toBuffer({ resolveWithObject: true })
+
+      const hData = hardResult.data
+      const sData = softResult.data
+      const hCh = hardResult.info.channels
+      const sCh = softResult.info.channels
+      const pixelCount = crop.width * crop.height
+
+      const combinedRaw = Buffer.allocUnsafe(pixelCount)
+      for (let i = 0; i < pixelCount; i++) {
+        combinedRaw[i] = Math.max(hData[i * hCh], sData[i * sCh])
+      }
+
+      const alphaMaskPng = await sharp(combinedRaw, {
+        raw: { width: crop.width, height: crop.height, channels: 1 }
+      }).png().toBuffer()
+
+      const editedCropResized = await sharp(Buffer.from(editedCropBase64, "base64"))
+        .resize(crop.width, crop.height, { fit: "cover", position: "center" })
+        .png()
+        .toBuffer()
+
+      const clippedEditedCrop = await sharp(editedCropResized)
+        .composite([{ input: alphaMaskPng, blend: "dest-in" }])
+        .png()
+        .toBuffer()
+
+      const finalBuffer = await sharp(sourcePath)
+        .composite([{ input: clippedEditedCrop, left: crop.left, top: crop.top, blend: "over" }])
+        .png()
+        .toBuffer()
+
+      const hash = randomHash()
+      const filename = `nt-${hash}.png`
+      fs.writeFileSync(path.join(OUTPUT_DIR, filename), finalBuffer)
+      fs.writeFileSync(path.join(OUTPUT_DIR, `nt-${hash}.txt`), prompt.trim(), "utf-8")
+
+      res.json({ image: finalBuffer.toString("base64"), mimeType: "image/png", filename })
+    } catch (err) {
+      console.error("CROP STITCH ERROR:", err)
+      res.status(500).json({ error: err?.message || String(err) })
+    }
   }
 )
 
@@ -786,7 +772,7 @@ app.post("/upload-reference", upload.array("images", 5), (req, res) => {
   }
 })
 
-app.post("/generate", (req, res) => {
+app.post("/generate", async (req, res) => {
   const prompt = req.body.prompt
   const size = req.body.size || "1024x1024"
   const quality = req.body.quality || "medium"
@@ -797,64 +783,50 @@ app.post("/generate", (req, res) => {
 
   fs.writeFileSync(LAST_PROMPT_FILE, prompt.trim(), "utf-8")
 
-  const jobId = randomHash()
-  pendingJobs.set(jobId, { status: "pending" })
-  res.json({ jobId })
-
   const referenceImages = getOrderedInputImages()
 
-  ;(async () => {
-    try {
-      let apiResult
+  try {
+    let apiResult
 
-      if (referenceImages.length > 0) {
-        apiResult = await openai.images.edit({
-          model: "gpt-image-2",
-          image: await Promise.all(
-            referenceImages.map(imagePath => fileToOpenAIFile(imagePath))
-          ),
-          prompt,
-          size,
-          quality
-        })
-      } else {
-        apiResult = await openai.images.generate({
-          model: "gpt-image-2",
-          prompt,
-          size,
-          quality
-        })
-      }
-
-      let imageBase64 = apiResult.data?.[0]?.b64_json
-      const imageUrl = apiResult.data?.[0]?.url
-
-      if (!imageBase64 && imageUrl) {
-        const imageResponse = await fetch(imageUrl)
-        imageBase64 = Buffer.from(await imageResponse.arrayBuffer()).toString("base64")
-      }
-
-      if (!imageBase64) throw new Error("No image returned from API")
-
-      const hash = randomHash()
-      const filename = `nt-${hash}.png`
-      fs.writeFileSync(path.join(OUTPUT_DIR, filename), Buffer.from(imageBase64, "base64"))
-      fs.writeFileSync(path.join(OUTPUT_DIR, `nt-${hash}.txt`), prompt.trim(), "utf-8")
-
-      pendingJobs.set(jobId, {
-        status: "done",
-        completedAt: Date.now(),
-        result: { image: imageBase64, mimeType: "image/png", filename }
+    if (referenceImages.length > 0) {
+      apiResult = await openai.images.edit({
+        model: "gpt-image-2",
+        image: await Promise.all(
+          referenceImages.map(imagePath => fileToOpenAIFile(imagePath))
+        ),
+        prompt,
+        size,
+        quality
       })
-    } catch (err) {
-      console.error("OpenAI generation error:", err)
-      pendingJobs.set(jobId, {
-        status: "error",
-        completedAt: Date.now(),
-        error: err?.message || String(err)
+    } else {
+      apiResult = await openai.images.generate({
+        model: "gpt-image-2",
+        prompt,
+        size,
+        quality
       })
     }
-  })()
+
+    let imageBase64 = apiResult.data?.[0]?.b64_json
+    const imageUrl = apiResult.data?.[0]?.url
+
+    if (!imageBase64 && imageUrl) {
+      const imageResponse = await fetch(imageUrl)
+      imageBase64 = Buffer.from(await imageResponse.arrayBuffer()).toString("base64")
+    }
+
+    if (!imageBase64) throw new Error("No image returned from API")
+
+    const hash = randomHash()
+    const filename = `nt-${hash}.png`
+    fs.writeFileSync(path.join(OUTPUT_DIR, filename), Buffer.from(imageBase64, "base64"))
+    fs.writeFileSync(path.join(OUTPUT_DIR, `nt-${hash}.txt`), prompt.trim(), "utf-8")
+
+    res.json({ image: imageBase64, mimeType: "image/png", filename })
+  } catch (err) {
+    console.error("OpenAI generation error:", err)
+    res.status(500).json({ error: err?.message || String(err) })
+  }
 })
 
 app.delete("/input-images/:filename", (req, res) => {
@@ -915,7 +887,7 @@ app.post(
     { name: "source", maxCount: 1 },
     { name: "mask", maxCount: 1 }
   ]),
-  (req, res) => {
+  async (req, res) => {
     const prompt = req.body.prompt
     const size = req.body.size || "1024x1024"
     const quality = req.body.quality || "medium"
@@ -931,78 +903,64 @@ app.post(
       return res.status(400).json({ error: "Source and mask are required" })
     }
 
-    const jobId = randomHash()
-    pendingJobs.set(jobId, { status: "pending" })
-    res.json({ jobId })
+    try {
+      const sourceMeta = await sharp(sourcePath).metadata()
 
-    ;(async () => {
-      try {
-        const sourceMeta = await sharp(sourcePath).metadata()
+      const apiResult = await openai.images.edit({
+        model: process.env.OPENAI_IMAGE_MODEL || "gpt-image-2",
+        image: await fileToOpenAIFile(sourcePath, "image/png"),
+        mask: await fileToOpenAIFile(maskPath, "image/png"),
+        prompt:
+          "Extend only the transparent masked/outpaint areas. " +
+          "Preserve the original visible image exactly. " +
+          prompt.trim(),
+        size,
+        quality
+      })
 
-        const apiResult = await openai.images.edit({
-          model: process.env.OPENAI_IMAGE_MODEL || "gpt-image-2",
-          image: await fileToOpenAIFile(sourcePath, "image/png"),
-          mask: await fileToOpenAIFile(maskPath, "image/png"),
-          prompt:
-            "Extend only the transparent masked/outpaint areas. " +
-            "Preserve the original visible image exactly. " +
-            prompt.trim(),
-          size,
-          quality
-        })
-
-        let editedBase64 = apiResult.data?.[0]?.b64_json
-        const editedUrl = apiResult.data?.[0]?.url
-        if (!editedBase64 && editedUrl) {
-          editedBase64 = Buffer.from(await (await fetch(editedUrl)).arrayBuffer()).toString("base64")
-        }
-        if (!editedBase64) throw new Error("No outpaint image returned from API")
-
-        const editedBuffer = await sharp(Buffer.from(editedBase64, "base64"))
-          .resize(sourceMeta.width, sourceMeta.height, { fit: "cover", position: "center" })
-          .png()
-          .toBuffer()
-
-        // Outpaint area = visible, original center = transparent (invert OpenAI mask)
-        const stitchMask = await sharp(maskPath)
-          .resize(sourceMeta.width, sourceMeta.height, { fit: "fill" })
-          .ensureAlpha()
-          .extractChannel("alpha")
-          .negate()
-          .dilate(4)
-          .blur(14)
-          .png()
-          .toBuffer()
-
-        const clippedOutpaint = await sharp(editedBuffer)
-          .composite([{ input: stitchMask, blend: "dest-in" }])
-          .png()
-          .toBuffer()
-
-        const finalBuffer = await sharp(sourcePath)
-          .composite([{ input: clippedOutpaint, left: 0, top: 0, blend: "over" }])
-          .png()
-          .toBuffer()
-
-        const hash = randomHash()
-        const filename = `nt-${hash}.png`
-        fs.writeFileSync(path.join(OUTPUT_DIR, filename), finalBuffer)
-        fs.writeFileSync(path.join(OUTPUT_DIR, `nt-${hash}.txt`), prompt.trim(), "utf-8")
-
-        pendingJobs.set(jobId, {
-          status: "done",
-          completedAt: Date.now(),
-          result: { image: finalBuffer.toString("base64"), mimeType: "image/png", filename }
-        })
-      } catch (err) {
-        console.error("OUTPAINT CROP-STITCH ERROR:", err)
-        pendingJobs.set(jobId, {
-          status: "error",
-          completedAt: Date.now(),
-          error: err?.message || String(err)
-        })
+      let editedBase64 = apiResult.data?.[0]?.b64_json
+      const editedUrl = apiResult.data?.[0]?.url
+      if (!editedBase64 && editedUrl) {
+        editedBase64 = Buffer.from(await (await fetch(editedUrl)).arrayBuffer()).toString("base64")
       }
-    })()
+      if (!editedBase64) throw new Error("No outpaint image returned from API")
+
+      const editedBuffer = await sharp(Buffer.from(editedBase64, "base64"))
+        .resize(sourceMeta.width, sourceMeta.height, { fit: "cover", position: "center" })
+        .png()
+        .toBuffer()
+
+      // Outpaint area = visible, original center = transparent (invert OpenAI mask)
+      const stitchMask = await sharp(maskPath)
+        .resize(sourceMeta.width, sourceMeta.height, { fit: "fill" })
+        .ensureAlpha()
+        .extractChannel("alpha")
+        .negate()
+        .dilate(4)
+        .blur(14)
+        .png()
+        .toBuffer()
+
+      const clippedOutpaint = await sharp(editedBuffer)
+        .composite([{ input: stitchMask, blend: "dest-in" }])
+        .png()
+        .toBuffer()
+
+      const finalBuffer = await sharp(sourcePath)
+        .composite([{ input: clippedOutpaint, left: 0, top: 0, blend: "over" }])
+        .png()
+        .toBuffer()
+
+      const hash = randomHash()
+      const filename = `nt-${hash}.png`
+      fs.writeFileSync(path.join(OUTPUT_DIR, filename), finalBuffer)
+      fs.writeFileSync(path.join(OUTPUT_DIR, `nt-${hash}.txt`), prompt.trim(), "utf-8")
+
+      res.json({ image: finalBuffer.toString("base64"), mimeType: "image/png", filename })
+    } catch (err) {
+      console.error("OUTPAINT CROP-STITCH ERROR:", err)
+      res.status(500).json({ error: err?.message || String(err) })
+    }
   }
 )
 
