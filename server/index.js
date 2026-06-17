@@ -1081,7 +1081,8 @@ app.post("/animate", (req, res) => {
   ;(async () => {
     try {
       const imageBuffer = await fs.promises.readFile(sourcePath)
-      const imageBlob = new Blob([imageBuffer], { type: "image/png" })
+      const imageMime = mime.lookup(sourcePath) || "image/png"
+      const imageBlob = new Blob([imageBuffer], { type: imageMime })
       const imageUrl = await fal.storage.upload(imageBlob)
 
       const result = await fal.subscribe("xai/grok-imagine-video/image-to-video", {
