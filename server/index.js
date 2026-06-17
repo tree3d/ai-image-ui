@@ -1032,20 +1032,11 @@ app.get("/usage-stats", async (req, res) => {
       dailyCosts.push({ ts: bucket.start_time, cost: amount })
     }
 
-    const COST_PER_IMAGE = parseFloat(process.env.COST_PER_IMAGE_ESTIMATE) || 0.21
-
     const activeDays = dailyCosts.filter(d => d.cost > 0)
     const monthCost = activeDays.reduce((s, d) => s + d.cost, 0)
     const lastDay = dailyCosts.at(-1) ?? null
     const peakDay = activeDays.reduce((best, d) => d.cost > best.cost ? d : best, { cost: 0, ts: null })
     const avgPerDay = activeDays.length > 0 ? monthCost / activeDays.length : null
-
-    // Estimate image counts using fixed cost-per-image baseline
-    const estMonthImages = Math.round(monthCost / COST_PER_IMAGE)
-    const last2 = activeDays.slice(-2)
-    const estRecentImgsPerDay = last2.length > 0
-      ? Math.round(last2.reduce((s, d) => s + d.cost, 0) / last2.length / COST_PER_IMAGE)
-      : null
 
     res.json({
       monthCost,
@@ -1054,8 +1045,6 @@ app.get("/usage-stats", async (req, res) => {
       peakDayCost: peakDay.ts ? peakDay.cost : null,
       peakDayTs: peakDay.ts ?? null,
       avgPerDay,
-      estMonthImages,
-      estRecentImgsPerDay,
       dailyCosts: dailyCosts.slice(-7)
     })
   } catch (err) {

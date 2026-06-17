@@ -35,12 +35,6 @@ For the usage/cost stats dashboard, also set an Admin key (create one at platfor
 OPENAI_ADMIN_KEY=sk-admin-your-admin-key-here
 ```
 
-Optionally tune the cost-per-image estimate used to approximate image counts (adjust to match your typical quality/size mix):
-
-```bash
-COST_PER_IMAGE_ESTIMATE=0.21
-```
-
 For image-to-video animation via fal.ai, set a fal.ai API key (get one at fal.ai/dashboard/keys):
 
 ```bash

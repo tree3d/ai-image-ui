@@ -4,12 +4,10 @@
       <div class="usage-chip">
         <span class="chip-label">{{ lastDayLabel }}</span>
         <span class="chip-value" :class="{ loading: pending }">{{ fmtCost(stats?.lastDayCost) }}</span>
-        <span class="chip-sub" v-if="stats?.estRecentImgsPerDay != null">~{{ stats.estRecentImgsPerDay }} imgs/day</span>
       </div>
       <div class="usage-chip">
         <span class="chip-label">This month</span>
         <span class="chip-value" :class="{ loading: pending }">{{ fmtCost(stats?.monthCost) }}</span>
-        <span class="chip-sub" v-if="stats?.estMonthImages != null">~{{ stats.estMonthImages }} imgs</span>
       </div>
       <div class="usage-chip">
         <span class="chip-label">{{ peakDayLabel }}</span>
