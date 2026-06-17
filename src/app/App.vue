@@ -832,12 +832,12 @@ const initMaskCanvas = () => {
   if (!canvas || !img) return
 
   // Buffer at natural resolution for pixel-accurate masking.
-  // CSS forced to 100% so it fills the stage regardless of buffer size
-  // (without this the canvas renders at naturalHeight px tall, overflowing below the image).
+  // CSS sized to offsetWidth/offsetHeight (layout px, unaffected by zoom transform)
+  // so the canvas overlay exactly covers the image at every zoom level.
   canvas.width = img.naturalWidth
   canvas.height = img.naturalHeight
-  canvas.style.width = '100%'
-  canvas.style.height = '100%'
+  canvas.style.width = img.offsetWidth + 'px'
+  canvas.style.height = img.offsetHeight + 'px'
 
   const ctx = canvas.getContext("2d")
   maskCtx.value = ctx
