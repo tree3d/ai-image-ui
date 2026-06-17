@@ -1574,6 +1574,14 @@ textarea {
   box-shadow: 0 0 14px rgba(107, 114, 128, 0.85);
 }
 
+.thumb-animate {
+  background: rgba(249, 115, 22, 0.9);
+}
+
+.thumb-animate:hover {
+  background: rgba(249, 115, 22, 0.98);
+}
+
 .inpaint-header button {
   white-space: nowrap;
 }

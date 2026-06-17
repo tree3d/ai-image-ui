@@ -117,7 +117,7 @@
               </button>
 
               <button
-                class="thumb-mode-btn"
+                class="thumb-mode-btn thumb-animate"
                 type="button"
                 title="Animate this image"
                 aria-label="Animate this image"
