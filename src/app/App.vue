@@ -676,15 +676,10 @@ const purgePreviewImages = () => {
 }
 
 const copyJobText = async (job) => {
-  const text =
-    job.status === "error"
-      ? typeof job.error === "string"
-        ? job.error
-        : JSON.stringify(job.error, null, 2)
-      : job.prompt
+  const text = job.prompt || ""
 
   try {
-    await navigator.clipboard.writeText(text || "")
+    await navigator.clipboard.writeText(text)
     job.copied = true
 
     scheduleTimeout(() => {
@@ -1255,7 +1250,9 @@ const startQueuedJob = (job, { countsTowardLimit = true } = {}) => {
           filename: job.sourceFilename,
           prompt: job.prompt,
           duration: job.duration,
-          resolution: job.resolution
+          resolution: job.resolution,
+          model: job.model || 'grok',
+          seedanceFast: job.seedanceFast || false
         })
         result = await pollJobStatus(startRes.data.jobId, { maxAttempts: 150 })
       } else if (job.type === "outpaint") {
@@ -1354,7 +1351,7 @@ const animateJob = (sourceJob) => {
   animateModalOpen.value = true
 }
 
-const submitAnimateJob = ({ duration, resolution, prompt: modalPrompt }) => {
+const submitAnimateJob = ({ model, duration, resolution, prompt: modalPrompt, seedanceFast }) => {
   const sourceJob = animateSourceJob.value
   if (!sourceJob) return
 
@@ -1364,8 +1361,10 @@ const submitAnimateJob = ({ duration, resolution, prompt: modalPrompt }) => {
     sourceFilename: sourceJob.filename,
     sourceImage: sourceJob.image,
     prompt: modalPrompt?.trim() || prompt.value.trim(),
+    model: model || 'grok',
     duration,
     resolution,
+    seedanceFast: !!seedanceFast,
     status: "queued",
     image: sourceJob.image,
     video: null,

@@ -605,10 +605,9 @@ app.post(
         .png()
         .toBuffer()
 
-      const hash = randomHash()
-      const filename = `nt-${hash}.png`
+      const filename = generateFilename("gpt2e", ".png")
       fs.writeFileSync(path.join(OUTPUT_DIR, filename), finalBuffer)
-      fs.writeFileSync(path.join(OUTPUT_DIR, `nt-${hash}.txt`), prompt.trim(), "utf-8")
+      fs.writeFileSync(path.join(OUTPUT_DIR, filename.replace(".png", ".txt")), prompt.trim(), "utf-8")
 
       res.json({ image: finalBuffer.toString("base64"), mimeType: "image/png", filename })
     } catch (err) {
@@ -634,6 +633,8 @@ const writeInputOrder = (order) => {
 }
 
 const randomHash = () => crypto.randomBytes(8).toString("hex")
+const generateFilename = (prefix, ext) =>
+  `${prefix}-${crypto.randomBytes(16).toString("hex")}-${Date.now()}${ext}`
 
 const getOrderedInputImages = () => {
   const existingFiles = fs
@@ -822,10 +823,9 @@ app.post("/generate", async (req, res) => {
 
     if (!imageBase64) throw new Error("No image returned from API")
 
-    const hash = randomHash()
-    const filename = `nt-${hash}.png`
+    const filename = generateFilename("gpt2i", ".png")
     fs.writeFileSync(path.join(OUTPUT_DIR, filename), Buffer.from(imageBase64, "base64"))
-    fs.writeFileSync(path.join(OUTPUT_DIR, `nt-${hash}.txt`), prompt.trim(), "utf-8")
+    fs.writeFileSync(path.join(OUTPUT_DIR, filename.replace(".png", ".txt")), prompt.trim(), "utf-8")
 
     res.json({ image: imageBase64, mimeType: "image/png", filename })
   } catch (err) {
@@ -956,10 +956,9 @@ app.post(
         .png()
         .toBuffer()
 
-      const hash = randomHash()
-      const filename = `nt-${hash}.png`
+      const filename = generateFilename("gpt2e", ".png")
       fs.writeFileSync(path.join(OUTPUT_DIR, filename), finalBuffer)
-      fs.writeFileSync(path.join(OUTPUT_DIR, `nt-${hash}.txt`), prompt.trim(), "utf-8")
+      fs.writeFileSync(path.join(OUTPUT_DIR, filename.replace(".png", ".txt")), prompt.trim(), "utf-8")
 
       res.json({ image: finalBuffer.toString("base64"), mimeType: "image/png", filename })
     } catch (err) {
@@ -1017,7 +1016,7 @@ app.get("/usage-stats", async (req, res) => {
 })
 
 app.post("/animate", (req, res) => {
-  const { filename, prompt, duration = 6, resolution = "720p" } = req.body
+  const { filename, prompt, duration = 6, resolution = "720p", model = "grok", seedanceFast = false } = req.body
 
   if (!process.env.FAL_KEY) {
     return res.status(401).json({ error: "FAL_KEY is not configured. Add FAL_KEY to your .env file to enable animation." })
@@ -1048,22 +1047,37 @@ app.post("/animate", (req, res) => {
       const imageBlob = new Blob([imageBuffer], { type: imageMime })
       const imageUrl = await fal.storage.upload(imageBlob)
 
-      const result = await fal.subscribe("xai/grok-imagine-video/image-to-video", {
-        input: {
+      let falModelId, falInput
+
+      if (model === "seedance") {
+        falModelId = seedanceFast
+          ? "bytedance/seedance-2.0/fast/image-to-video"
+          : "bytedance/seedance-2.0/image-to-video"
+        falInput = {
+          image_url: imageUrl,
+          prompt: prompt.trim(),
+          duration,
+          resolution
+        }
+      } else {
+        falModelId = "xai/grok-imagine-video/image-to-video"
+        falInput = {
           image_url: imageUrl,
           prompt: prompt.trim(),
           duration,
           resolution,
           aspect_ratio: "auto"
         }
-      })
+      }
+
+      const result = await fal.subscribe(falModelId, { input: falInput })
 
       const videoUrl = result.data.video.url
       const videoRes = await fetch(videoUrl)
       if (!videoRes.ok) throw new Error("Failed to download video from fal.ai")
 
       const videoBuffer = Buffer.from(await videoRes.arrayBuffer())
-      const videoFilename = `nt-${crypto.randomBytes(6).toString("hex")}.mp4`
+      const videoFilename = generateFilename(model === "seedance" ? "seed2" : "grokv", ".mp4")
       const videoPath = path.join(OUTPUT_DIR, videoFilename)
       await fs.promises.writeFile(videoPath, videoBuffer)
 
