@@ -97,9 +97,58 @@ textarea {
 
 .label {
   display: block;
-  margin-bottom: 12px;
   color: #d9ccff;
   font-weight: 700;
+}
+
+.prompt-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.enhance-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  background: rgba(168, 85, 247, 0.1);
+  color: #c4b5fd;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+}
+
+.enhance-btn:hover:not(:disabled) {
+  background: rgba(168, 85, 247, 0.22);
+  border-color: #a855f7;
+  color: #ede9fe;
+}
+
+.enhance-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.enhance-btn.loading {
+  opacity: 0.75;
+  animation: enhance-pulse 1.2s ease-in-out infinite;
+}
+
+.enhance-btn-icon {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+@keyframes enhance-pulse {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 0.4; }
 }
 
 .prompt-box {
@@ -984,9 +1033,22 @@ textarea {
   flex-shrink: 0;
 }
 
-.animate-modal-prompt-input {
+.animate-modal-prompt-wrap {
   flex: 1 1 0;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.animate-modal-prompt-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.animate-modal-prompt-input {
+  width: 100%;
   resize: vertical;
   border: 1px solid rgba(168, 85, 247, 0.35);
   border-radius: 12px;

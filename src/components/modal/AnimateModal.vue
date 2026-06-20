@@ -33,12 +33,28 @@
 
         <div class="animate-modal-thumb-wrap">
           <img v-if="sourceJob?.image" :src="sourceJob.image" class="animate-modal-thumb" />
-          <textarea
-            v-model="localPrompt"
-            class="animate-modal-prompt-input"
-            placeholder="Describe the motion (e.g. slow camera push in, leaves rustling in wind…)"
-            rows="4"
-          />
+          <div class="animate-modal-prompt-wrap">
+            <div class="animate-modal-prompt-label-row">
+              <span class="animate-modal-label">Motion prompt</span>
+              <button
+                class="enhance-btn"
+                :class="{ loading: enhancing }"
+                :disabled="enhancing || !localPrompt.trim()"
+                type="button"
+                title="Enhance prompt with Gemma via Ollama"
+                @click="handleEnhance"
+              >
+                <AppIcon name="wand" class="enhance-btn-icon" />
+                <span>{{ enhancing ? 'Enhancing…' : 'Enhance' }}</span>
+              </button>
+            </div>
+            <textarea
+              v-model="localPrompt"
+              class="animate-modal-prompt-input"
+              placeholder="Describe the motion (e.g. slow camera push in, leaves rustling in wind…)"
+              rows="4"
+            />
+          </div>
         </div>
 
         <div class="animate-modal-section">
@@ -102,7 +118,9 @@ import AppIcon from '../ui/AppIcon.vue'
 const props = defineProps({
   open: { type: Boolean, required: true },
   sourceJob: { type: Object, default: null },
-  motionPrompt: { type: String, default: '' }
+  motionPrompt: { type: String, default: '' },
+  enhancing: { type: Boolean, default: false },
+  enhanceFn: { type: Function, default: null }
 })
 
 const emit = defineEmits(['close', 'submit'])
@@ -156,6 +174,12 @@ watch(() => props.open, (v) => {
     seedanceFast.value = false
   }
 })
+
+const handleEnhance = async () => {
+  if (!props.enhanceFn || !localPrompt.value.trim()) return
+  const enhanced = await props.enhanceFn(localPrompt.value)
+  if (enhanced) localPrompt.value = enhanced
+}
 
 const submit = () => {
   emit('submit', {

@@ -73,6 +73,28 @@ The Express server runs on:
 http://localhost:5010
 ```
 
+## Prompt Enhancer (Ollama)
+
+The **Enhance** button next to the prompt textarea (and inside the Animate modal) sends your rough idea to a local [Ollama](https://ollama.com) instance and returns a detailed, camera-aware image prompt.
+
+### Requirements
+
+- Ollama installed and running locally
+- The target model pulled: `ollama pull gemma4:31B`
+
+### Configuration
+
+All Ollama settings are optional — the defaults work out of the box with a local Ollama server:
+
+```bash
+OLLAMA_URL=http://localhost:11434   # Ollama base URL
+OLLAMA_MODEL=gemma4:31B            # Model to use
+OLLAMA_NUM_CTX=8192                # Context window in tokens
+OLLAMA_SYSTEM_PROMPT=              # Leave blank to use the built-in artist system prompt
+```
+
+For a hosted deployment, point `OLLAMA_URL` at your remote Ollama server.
+
 ## Tests
 
 Run the server-side test suite once:

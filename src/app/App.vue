@@ -24,7 +24,20 @@
       <div class="divider"></div>
 
       <div class="card">
-        <label class="label">Prompt</label>
+        <div class="prompt-label-row">
+          <label class="label">Prompt</label>
+          <button
+            class="enhance-btn"
+            :class="{ loading: enhancing }"
+            :disabled="enhancing || !prompt.trim()"
+            title="Enhance prompt with Gemma 4 via Ollama"
+            type="button"
+            @click="enhancePrompt"
+          >
+            <AppIcon name="wand" class="enhance-btn-icon" />
+            <span>{{ enhancing ? 'Enhancing…' : 'Enhance' }}</span>
+          </button>
+        </div>
 
         <textarea
           v-model="prompt"
@@ -267,6 +280,8 @@
       :open="animateModalOpen"
       :source-job="animateSourceJob"
       :motion-prompt="prompt"
+      :enhancing="enhancing"
+      :enhance-fn="enhance"
       @close="animateModalOpen = false"
       @submit="submitAnimateJob"
     />
@@ -294,6 +309,7 @@ import { qualityOptions, sizeOptions } from "../constants/options"
 import {
   animateRequest,
   cropStitchInpaintRequest,
+  enhancePromptRequest,
   generateImageRequest,
   outpaintCropStitchRequest,
   pollJobStatus
@@ -375,6 +391,8 @@ const batchCount = ref(4)
 const prompt = ref(
   "chubby bearded man, full body view, wearing loose tank top t shirt, loose sweat shorts, barefoot."
 )
+
+const enhancing = ref(false)
 
 const pendingTimeouts = new Set()
 
@@ -673,6 +691,29 @@ const purgePreviewImages = () => {
     // Remove completed/failed jobs older than 5 seconds
     return false
   })
+}
+
+// Core enhance — calls server, returns enhanced string or null on error
+const enhance = async (text) => {
+  if (!text?.trim() || enhancing.value) return null
+  enhancing.value = true
+  try {
+    const res = await enhancePromptRequest(text.trim())
+    return res.data.enhanced || null
+  } catch (err) {
+    const msg = err.response?.data?.error || err.message || "Prompt enhancement failed"
+    errorMessage.value = msg
+    errorOpen.value = true
+    return null
+  } finally {
+    enhancing.value = false
+  }
+}
+
+// Used by the main prompt textarea button
+const enhancePrompt = async () => {
+  const enhanced = await enhance(prompt.value)
+  if (enhanced) prompt.value = enhanced
 }
 
 const copyJobText = async (job) => {

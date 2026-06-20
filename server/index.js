@@ -1015,6 +1015,56 @@ app.get("/usage-stats", async (req, res) => {
   }
 })
 
+const OLLAMA_DEFAULT_SYSTEM_PROMPT =
+  "You are an GPT image dev AI artist. You write detailed prompts based on the ideas given from me. " +
+  "You like to give camera lens information to boost the resulting image quality. " +
+  "You just output one detailed prompt, without annotations or tips. " +
+  "you should always be carefull with the word and phrase choices so that the prompts are the the safest possible and not be blocked by content moderators. " +
+  "if i use image references in my text keep the image references."
+
+app.post("/enhance-prompt", async (req, res) => {
+  const { prompt } = req.body
+  if (!prompt?.trim()) return res.status(400).json({ error: "prompt is required" })
+
+  const ollamaUrl = process.env.OLLAMA_URL || "http://localhost:11434"
+  const ollamaModel = process.env.OLLAMA_MODEL || "gemma4:31B"
+  const numCtx = parseInt(process.env.OLLAMA_NUM_CTX || "8192", 10)
+  const systemPrompt = process.env.OLLAMA_SYSTEM_PROMPT || OLLAMA_DEFAULT_SYSTEM_PROMPT
+
+  try {
+    const ollamaRes = await fetch(`${ollamaUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: ollamaModel,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: prompt.trim() }
+        ],
+        stream: false,
+        think: true,
+        options: { num_ctx: numCtx }
+      })
+    })
+
+    if (!ollamaRes.ok) {
+      const text = await ollamaRes.text()
+      return res.status(502).json({ error: `Ollama error ${ollamaRes.status}`, details: text })
+    }
+
+    const data = await ollamaRes.json()
+    const enhanced = data.message?.content?.trim()
+    if (!enhanced) return res.status(502).json({ error: "Empty response from Ollama" })
+
+    res.json({ enhanced })
+  } catch (err) {
+    if (err.code === "ECONNREFUSED" || err.cause?.code === "ECONNREFUSED") {
+      return res.status(503).json({ error: `Could not connect to Ollama at ${ollamaUrl}. Make sure it is running.` })
+    }
+    res.status(500).json({ error: err.message || "Prompt enhancement failed" })
+  }
+})
+
 app.post("/animate", (req, res) => {
   const { filename, prompt, duration = 6, resolution = "720p", model = "grok", seedanceFast = false } = req.body
 

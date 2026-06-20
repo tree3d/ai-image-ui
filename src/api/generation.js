@@ -18,6 +18,10 @@ export const animateRequest = (payload) => {
   return api.post("/animate", payload)
 }
 
+export const enhancePromptRequest = (prompt) => {
+  return api.post("/enhance-prompt", { prompt })
+}
+
 export const pollJobStatus = async (jobId, { intervalMs = 2000, maxAttempts = 90 } = {}) => {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const res = await api.get(`/status/${jobId}`)

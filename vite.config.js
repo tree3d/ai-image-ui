@@ -16,6 +16,7 @@ export default defineConfig({
       "/status": "http://localhost:5010",
       "/usage-stats": "http://localhost:5010",
       "/animate": "http://localhost:5010",
+      "/enhance-prompt": "http://localhost:5010",
     }
   }
 })
