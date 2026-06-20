@@ -18,8 +18,8 @@ export const animateRequest = (payload) => {
   return api.post("/animate", payload)
 }
 
-export const enhancePromptRequest = (prompt, imageFilenames = []) => {
-  return api.post("/enhance-prompt", { prompt, imageFilenames })
+export const enhancePromptRequest = (prompt, imageFilenames = [], settings = {}) => {
+  return api.post("/enhance-prompt", { prompt, imageFilenames, ...settings })
 }
 
 export const pollJobStatus = async (jobId, { intervalMs = 2000, maxAttempts = 90 } = {}) => {

@@ -36,17 +36,27 @@
           <div class="animate-modal-prompt-wrap">
             <div class="animate-modal-prompt-label-row">
               <span class="animate-modal-label">Motion prompt</span>
-              <button
-                class="enhance-btn"
-                :class="{ loading: enhancing }"
-                :disabled="enhancing || !localPrompt.trim()"
-                type="button"
-                title="Enhance prompt with Gemma via Ollama"
-                @click="handleEnhance"
-              >
-                <AppIcon name="wand" class="enhance-btn-icon" />
-                <span>{{ enhancing ? 'Enhancing…' : 'Enhance' }}</span>
-              </button>
+              <div class="enhance-btn-group">
+                <button
+                  class="enhance-btn"
+                  :class="{ loading: enhancing }"
+                  :disabled="enhancing || !localPrompt.trim()"
+                  type="button"
+                  title="Enhance prompt with Gemma via Ollama"
+                  @click="handleEnhance"
+                >
+                  <AppIcon name="wand" class="enhance-btn-icon" />
+                  <span>{{ enhancing ? 'Enhancing…' : 'Enhance' }}</span>
+                </button>
+                <button
+                  class="enhance-settings-btn"
+                  type="button"
+                  title="Enhance settings"
+                  @click="enhanceSettingsOpen = true"
+                >
+                  <AppIcon name="settings" />
+                </button>
+              </div>
             </div>
             <div class="prompt-slots">
               <button
@@ -61,11 +71,12 @@
               <div class="prompt-slot-actions">
                 <button
                   class="slot-action-btn slot-action-copy"
-                  :disabled="!localPrompt.trim()"
+                  :class="{ copied: animateSlotCopied }"
+                  :disabled="!localPrompt.trim() || animateSlotCopied"
                   title="Copy current slot prompt"
                   type="button"
                   @click="copyAnimateSlot"
-                ><AppIcon name="copy" /></button>
+                ><AppIcon :name="animateSlotCopied ? 'check' : 'copy'" /></button>
                 <button
                   class="slot-action-btn slot-action-clear"
                   :disabled="!localPrompt.trim()"
@@ -137,12 +148,18 @@
       </div>
     </div>
   </div>
+
+  <EnhanceSettingsModal
+    :open="enhanceSettingsOpen"
+    @close="enhanceSettingsOpen = false"
+  />
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
 import AppIcon from '../ui/AppIcon.vue'
 import { usePromptSlots } from '../../composables/usePromptSlots'
+import EnhanceSettingsModal from './EnhanceSettingsModal.vue'
 
 const props = defineProps({
   open: { type: Boolean, required: true },
@@ -170,6 +187,8 @@ const {
   clearSlot: clearAnimateSlotStorage
 } = usePromptSlots('animate-prompt-slots')
 
+const enhanceSettingsOpen = ref(false)
+
 const model = ref('grok')
 const duration = ref(6)
 const resolution = ref('720p')
@@ -188,8 +207,13 @@ const clearAnimateSlot = () => {
   localPrompt.value = ''
 }
 
+const animateSlotCopied = ref(false)
 const copyAnimateSlot = async () => {
-  try { await navigator.clipboard.writeText(localPrompt.value) } catch {}
+  try {
+    await navigator.clipboard.writeText(localPrompt.value)
+    animateSlotCopied.value = true
+    setTimeout(() => { animateSlotCopied.value = false }, 2000)
+  } catch {}
 }
 
 const activeDurations = computed(() =>

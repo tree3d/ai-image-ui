@@ -26,17 +26,27 @@
       <div class="card">
         <div class="prompt-label-row">
           <label class="label">Prompt</label>
-          <button
-            class="enhance-btn"
-            :class="{ loading: enhancing }"
-            :disabled="enhancing || !prompt.trim()"
-            title="Enhance prompt with Gemma 4 via Ollama"
-            type="button"
-            @click="enhancePrompt"
-          >
-            <AppIcon name="wand" class="enhance-btn-icon" />
-            <span>{{ enhancing ? 'Enhancing…' : 'Enhance' }}</span>
-          </button>
+          <div class="enhance-btn-group">
+            <button
+              class="enhance-btn"
+              :class="{ loading: enhancing }"
+              :disabled="enhancing || !prompt.trim()"
+              title="Enhance prompt with Gemma 4 via Ollama"
+              type="button"
+              @click="enhancePrompt"
+            >
+              <AppIcon name="wand" class="enhance-btn-icon" />
+              <span>{{ enhancing ? 'Enhancing…' : 'Enhance' }}</span>
+            </button>
+            <button
+              class="enhance-settings-btn"
+              type="button"
+              title="Enhance settings"
+              @click="enhanceSettingsOpen = true"
+            >
+              <AppIcon name="settings" />
+            </button>
+          </div>
         </div>
 
         <div class="prompt-slots">
@@ -52,11 +62,12 @@
           <div class="prompt-slot-actions">
             <button
               class="slot-action-btn slot-action-copy"
-              :disabled="!prompt.trim()"
+              :class="{ copied: promptSlotCopied }"
+              :disabled="!prompt.trim() || promptSlotCopied"
               title="Copy current slot prompt"
               type="button"
               @click="copyPromptSlot"
-            ><AppIcon name="copy" /></button>
+            ><AppIcon :name="promptSlotCopied ? 'check' : 'copy'" /></button>
             <button
               class="slot-action-btn slot-action-clear"
               :disabled="!prompt.trim()"
@@ -329,6 +340,11 @@
       <button class="modal-close" @click="videoModalOpen = false"><span>×</span></button>
     </div>
 
+    <EnhanceSettingsModal
+      :open="enhanceSettingsOpen"
+      @close="enhanceSettingsOpen = false"
+    />
+
   </div>
 </template>
 
@@ -346,11 +362,11 @@ import {
 import {
   deleteInputImageRequest,
   getInputImages,
-  getLastPrompt,
   saveInputOrderRequest,
   uploadReferenceImages
 } from "../api/inputImages"
 import AnimateModal from "../components/modal/AnimateModal.vue"
+import EnhanceSettingsModal from "../components/modal/EnhanceSettingsModal.vue"
 import ErrorModal from "../components/modal/ErrorModal.vue"
 import ImageModal from "../components/modal/ImageModal.vue"
 import OptionSelector from "../components/prompt/OptionSelector.vue"
@@ -361,6 +377,7 @@ import AppIcon from "../components/ui/AppIcon.vue"
 import { useGalleryScale } from "../composables/useGalleryScale"
 import { useImageModal } from "../composables/useImageModal"
 import { usePromptSlots } from "../composables/usePromptSlots"
+import { useEnhanceSettings } from "../composables/useEnhanceSettings"
 
 const jobs = ref([])
 
@@ -442,11 +459,18 @@ const clearPromptSlot = () => {
   prompt.value = ''
 }
 
+const promptSlotCopied = ref(false)
 const copyPromptSlot = async () => {
-  try { await navigator.clipboard.writeText(prompt.value) } catch {}
+  try {
+    await navigator.clipboard.writeText(prompt.value)
+    promptSlotCopied.value = true
+    setTimeout(() => { promptSlotCopied.value = false }, 2000)
+  } catch {}
 }
 
 const enhancing = ref(false)
+const enhanceSettingsOpen = ref(false)
+const { systemPrompt: enhanceSystemPrompt, think: enhanceThink, useContext: enhanceUseContext, numCtx: enhanceNumCtx } = useEnhanceSettings()
 
 const pendingTimeouts = new Set()
 
@@ -711,18 +735,6 @@ const selectInpaintImage = (file) => {
   }, 0)
 }
 
-const loadLastPrompt = async () => {
-  try {
-    const res = await getLastPrompt()
-
-    if (res.data.prompt) {
-      prompt.value = res.data.prompt
-    }
-  } catch (err) {
-    console.warn("Could not load last prompt", err)
-  }
-}
-
 const purgePreviewImages = () => {
   const now = Date.now()
 
@@ -752,7 +764,11 @@ const enhance = async (text, imageFilenames = []) => {
   if (!text?.trim() || enhancing.value) return null
   enhancing.value = true
   try {
-    const res = await enhancePromptRequest(text.trim(), imageFilenames)
+    const res = await enhancePromptRequest(text.trim(), imageFilenames, {
+      overrideSystemPrompt: enhanceSystemPrompt.value,
+      overrideThink: enhanceThink.value,
+      overrideNumCtx: enhanceUseContext.value ? enhanceNumCtx.value : undefined
+    })
     return res.data.enhanced || null
   } catch (err) {
     const msg = err.response?.data?.error || err.message || "Prompt enhancement failed"
@@ -783,7 +799,7 @@ const copyJobText = async (job) => {
 
     scheduleTimeout(() => {
       job.copied = false
-    }, 1200)
+    }, 2000)
   } catch (err) {
     showError(err, "Could not copy text")
   }
@@ -890,7 +906,6 @@ const loadInputImages = async () => {
 }
 
 onMounted(() => {
-  loadLastPrompt()
   loadInputImages()
 })
 

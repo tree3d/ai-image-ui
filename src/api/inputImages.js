@@ -8,10 +8,6 @@ export const getInputImages = () => {
   return api.get("/input-images")
 }
 
-export const getLastPrompt = () => {
-  return api.get("/last-prompt")
-}
-
 export const saveInputOrderRequest = (order) => {
   return api.post("/input-images/order", { order })
 }

@@ -6,6 +6,5 @@ export const ROOT_DIR = path.resolve(SERVER_DIR, "..", "..")
 
 export const CROP_STITCH_DIR = path.join(ROOT_DIR, "crop-stitch")
 export const INPUT_DIR = path.join(ROOT_DIR, "input")
-export const LAST_PROMPT_FILE = path.join(ROOT_DIR, "output", "last_prompt.txt")
 export const MASK_DIR = path.join(ROOT_DIR, "mask")
 export const OUTPUT_DIR = path.join(ROOT_DIR, "output")

@@ -13,6 +13,8 @@
     <button
       class="preview-copy"
       type="button"
+      :class="{ copied: job.copied }"
+      :disabled="job.copied"
       :aria-label="job.copied ? 'Copied' : 'Copy prompt'"
       @click.stop.prevent="$emit('copy', job)"
     >

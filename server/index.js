@@ -14,7 +14,6 @@ import dotenv from "dotenv"
 import {
   CROP_STITCH_DIR,
   INPUT_DIR,
-  LAST_PROMPT_FILE,
   MASK_DIR,
   OUTPUT_DIR
 } from "./utils/paths.js"
@@ -787,8 +786,6 @@ app.post("/generate", async (req, res) => {
     return res.status(400).json({ error: "Prompt is required" })
   }
 
-  fs.writeFileSync(LAST_PROMPT_FILE, prompt.trim(), "utf-8")
-
   const referenceImages = getOrderedInputImages()
 
   try {
@@ -862,22 +859,6 @@ app.delete("/input-images/:filename", (req, res) => {
   }
 })
 
-app.get("/last-prompt", (req, res) => {
-  try {
-    if (!fs.existsSync(LAST_PROMPT_FILE)) {
-      return res.json({ prompt: "" })
-    }
-
-    const prompt = fs.readFileSync(LAST_PROMPT_FILE, "utf-8")
-
-    res.json({ prompt })
-  } catch (err) {
-    res.status(500).json({
-      error: "Could not read last prompt",
-      details: err.message
-    })
-  }
-})
 
 const uploadOutpaint = multer({
   storage: multer.diskStorage({
@@ -1023,13 +1004,20 @@ const OLLAMA_DEFAULT_SYSTEM_PROMPT =
   "if i use image references in my text keep the image references."
 
 app.post("/enhance-prompt", async (req, res) => {
-  const { prompt, imageFilenames = [] } = req.body
+  const {
+    prompt,
+    imageFilenames = [],
+    overrideSystemPrompt,
+    overrideThink,
+    overrideNumCtx
+  } = req.body
   if (!prompt?.trim()) return res.status(400).json({ error: "prompt is required" })
 
   const ollamaUrl = process.env.OLLAMA_URL || "http://localhost:11434"
   const ollamaModel = process.env.OLLAMA_MODEL || "gemma4:31B"
-  const numCtx = parseInt(process.env.OLLAMA_NUM_CTX || "8192", 10)
-  const systemPrompt = process.env.OLLAMA_SYSTEM_PROMPT || OLLAMA_DEFAULT_SYSTEM_PROMPT
+  const numCtx = overrideNumCtx != null ? parseInt(overrideNumCtx, 10) : parseInt(process.env.OLLAMA_NUM_CTX || "8192", 10)
+  const thinkMode = overrideThink != null ? Boolean(overrideThink) : true
+  const systemPrompt = overrideSystemPrompt?.trim() || process.env.OLLAMA_SYSTEM_PROMPT || OLLAMA_DEFAULT_SYSTEM_PROMPT
 
   // Resolve reference images from INPUT_DIR only (user-uploaded references, ordered by UI)
   const images = []
@@ -1055,7 +1043,7 @@ app.post("/enhance-prompt", async (req, res) => {
           userMessage
         ],
         stream: false,
-        think: true,
+        think: thinkMode,
         options: { num_ctx: numCtx }
       })
     })
