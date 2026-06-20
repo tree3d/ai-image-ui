@@ -84,7 +84,19 @@
                   type="button"
                   @click="clearAnimateSlot"
                 ><AppIcon name="x" /></button>
+                <button
+                  class="slot-action-btn slot-action-clear-all"
+                  :disabled="animateSlots.every(s => !s.trim())"
+                  title="Clear all slots"
+                  type="button"
+                  @click="clearAllAnimateConfirm = !clearAllAnimateConfirm"
+                ><AppIcon name="trash" /></button>
               </div>
+            </div>
+            <div v-if="clearAllAnimateConfirm" class="clear-all-confirm">
+              <span>Clear all 5 slots?</span>
+              <button class="clear-all-confirm-yes" type="button" @click="confirmClearAllAnimate">Yes, clear all</button>
+              <button class="clear-all-confirm-no" type="button" @click="clearAllAnimateConfirm = false">Cancel</button>
             </div>
 
             <textarea
@@ -184,7 +196,8 @@ const {
   syncSlot: syncAnimateSlot,
   switchSlot: switchAnimateSlotFn,
   fillFreeSlot: fillAnimateFreeSlot,
-  clearSlot: clearAnimateSlotStorage
+  clearSlot: clearAnimateSlotStorage,
+  clearAllSlots: clearAllAnimateSlots
 } = usePromptSlots('animate-prompt-slots')
 
 const enhanceSettingsOpen = ref(false)
@@ -205,6 +218,13 @@ const switchAnimateSlot = (i) => {
 const clearAnimateSlot = () => {
   clearAnimateSlotStorage()
   localPrompt.value = ''
+}
+
+const clearAllAnimateConfirm = ref(false)
+const confirmClearAllAnimate = () => {
+  clearAllAnimateSlots()
+  localPrompt.value = ''
+  clearAllAnimateConfirm.value = false
 }
 
 const animateSlotCopied = ref(false)

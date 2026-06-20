@@ -50,11 +50,16 @@ export function usePromptSlots(storageKey) {
     return text
   }
 
-  // Clear the active slot's stored text
   const clearSlot = () => {
     slots.value[activeIndex.value] = ''
     persist()
   }
 
-  return { slots, activeIndex, syncSlot, switchSlot, fillFreeSlot, clearSlot }
+  const clearAllSlots = () => {
+    slots.value = Array(SLOT_COUNT).fill('')
+    activeIndex.value = 0
+    persist()
+  }
+
+  return { slots, activeIndex, syncSlot, switchSlot, fillFreeSlot, clearSlot, clearAllSlots }
 }

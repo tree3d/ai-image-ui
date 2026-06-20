@@ -75,7 +75,19 @@
               type="button"
               @click="clearPromptSlot"
             ><AppIcon name="x" /></button>
+            <button
+              class="slot-action-btn slot-action-clear-all"
+              :disabled="promptSlots.every(s => !s.trim())"
+              title="Clear all slots"
+              type="button"
+              @click="clearAllConfirm = !clearAllConfirm"
+            ><AppIcon name="trash" /></button>
           </div>
+        </div>
+        <div v-if="clearAllConfirm" class="clear-all-confirm">
+          <span>Clear all 5 slots?</span>
+          <button class="clear-all-confirm-yes" type="button" @click="confirmClearAll">Yes, clear all</button>
+          <button class="clear-all-confirm-no" type="button" @click="clearAllConfirm = false">Cancel</button>
         </div>
 
         <textarea
@@ -441,7 +453,8 @@ const {
   syncSlot: syncPromptSlot,
   switchSlot: switchPromptSlotFn,
   fillFreeSlot: fillPromptFreeSlot,
-  clearSlot: clearPromptSlotStorage
+  clearSlot: clearPromptSlotStorage,
+  clearAllSlots: clearAllPromptSlots
 } = usePromptSlots('prompt-slots')
 
 const DEFAULT_PROMPT = "chubby bearded man, full body view, wearing loose tank top t shirt, loose sweat shorts, barefoot."
@@ -457,6 +470,13 @@ const switchPromptSlot = (i) => {
 const clearPromptSlot = () => {
   clearPromptSlotStorage()
   prompt.value = ''
+}
+
+const clearAllConfirm = ref(false)
+const confirmClearAll = () => {
+  clearAllPromptSlots()
+  prompt.value = ''
+  clearAllConfirm.value = false
 }
 
 const promptSlotCopied = ref(false)

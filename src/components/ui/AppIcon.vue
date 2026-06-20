@@ -32,6 +32,14 @@
       <path d="m6 6 12 12" />
     </template>
 
+    <template v-else-if="name === 'trash'">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6l-1 14H6L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+      <path d="M9 6V4h6v2" />
+    </template>
+
     <template v-else-if="name === 'ellipsis'">
       <circle cx="5" cy="12" r="1.65" fill="currentColor" stroke="none" />
       <circle cx="12" cy="12" r="1.65" fill="currentColor" stroke="none" />
