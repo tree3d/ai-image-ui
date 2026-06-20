@@ -24,6 +24,9 @@ mask/
 crop-stitch/
 uploads/
 
+# Local ComfyUI workflows (optional, machine-specific)
+comfy-workflows/
+
 # Editor directories and files
 .vscode/
 .idea
