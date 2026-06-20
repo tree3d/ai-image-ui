@@ -2,6 +2,8 @@
 
 Local Vue + Express app for generating, editing, inpainting, outpainting, and animating images. Uses OpenAI gpt-image-1 for image generation and fal.ai xai/grok-imagine-video for image-to-video animation. The frontend manages prompts, reference images, masks, a job gallery, and a usage/cost stats dashboard; the backend handles uploads, generation, crop-stitch inpainting, background jobs, and runtime file storage.
 
+![UI screenshot](public/ui-example.png)
+
 ## Setup
 
 Install dependencies:
