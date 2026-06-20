@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2200 1200" role="img" aria-label="Wide neon graffiti M background">
+  <defs>
+    <linearGradient id="lime" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#6aff16"/>
+      <stop offset="0.46" stop-color="#b7ff34"/>
+      <stop offset="1" stop-color="#6dff12"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#05040a"/>
+      <stop offset="1" stop-color="#171022"/>
+    </linearGradient>
+    <filter id="spray-glow" x="-16%" y="-18%" width="132%" height="136%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="
+        0 0 0 0 0.46
+        0 0 0 0 1
+        0 0 0 0 0.08
+        0 0 0 0.8 0"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="hard-shadow" x="-12%" y="-14%" width="124%" height="128%">
+      <feDropShadow dx="42" dy="44" stdDeviation="0" flood-color="#030208" flood-opacity="0.92"/>
+      <feDropShadow dx="22" dy="24" stdDeviation="10" flood-color="#030208" flood-opacity="0.86"/>
+      <feDropShadow dx="-14" dy="12" stdDeviation="0" flood-color="#1b102c" flood-opacity="0.72"/>
+    </filter>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.86" numOctaves="3" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.16"/>
+      </feComponentTransfer>
+    </filter>
+  </defs>
+
+  <rect width="2200" height="1200" fill="none"/>
+
+  <g opacity="0.78" filter="url(#spray-glow)">
+    <ellipse cx="1160" cy="590" rx="1040" ry="420" fill="#7dff20" opacity="0.08"/>
+    <ellipse cx="1370" cy="420" rx="760" ry="300" fill="#a855f7" opacity="0.12"/>
+  </g>
+
+  <g transform="translate(-40 94) rotate(-12 1100 600)" filter="url(#hard-shadow)">
+    <polygon points="118,842 322,712 612,126 776,174 748,710 1032,220 1212,268 1132,1036 936,1058 974,526 736,948 556,910 574,390 322,910" fill="url(#edge)" opacity="0.95"/>
+    <polygon points="172,814 352,690 616,162 728,196 696,786 1018,246 1150,288 1084,988 972,996 1000,430 722,884 602,854 618,304 358,858" fill="url(#lime)"/>
+    <polygon points="344,698 616,162 690,186 426,740" fill="#ddff6c" opacity="0.72"/>
+    <polygon points="708,776 1018,246 1096,270 784,810" fill="#ddff6c" opacity="0.58"/>
+    <polygon points="188,814 356,704 334,770 158,882" fill="#0a0710" opacity="0.82"/>
+    <polygon points="1084,988 1150,288 1216,330 1142,1030" fill="#0a0710" opacity="0.68"/>
+  </g>
+
+  <g transform="translate(890 -28) rotate(-12 1100 600)" filter="url(#hard-shadow)">
+    <polygon points="70,822 238,682 490,156 650,184 642,670 908,214 1078,260 1020,968 824,1000 850,514 632,890 470,856 468,392 224,884" fill="url(#edge)" opacity="0.9"/>
+    <polygon points="120,790 266,664 500,190 604,208 590,734 898,246 1014,286 966,916 862,936 878,426 622,826 518,802 520,298 260,830" fill="url(#lime)" opacity="0.94"/>
+    <polygon points="270,666 500,190 574,206 350,704" fill="#ddff6c" opacity="0.56"/>
+    <polygon points="600,724 898,246 970,268 674,756" fill="#ddff6c" opacity="0.5"/>
+  </g>
+
+  <g opacity="0.92">
+    <polygon points="96,300 138,282 154,324 112,342" fill="#05040a"/>
+    <polygon points="242,214 282,214 282,254 242,254" fill="#88ff24"/>
+    <polygon points="454,108 492,98 506,136 468,148" fill="#101016"/>
+    <polygon points="740,248 792,248 792,300 740,300" fill="#8dff26"/>
+    <polygon points="1034,134 1082,120 1098,168 1050,182" fill="#05040a"/>
+    <polygon points="1282,284 1322,260 1350,304 1308,330" fill="#9aff2b"/>
+    <polygon points="1482,142 1538,142 1538,198 1482,198" fill="#06050b"/>
+    <polygon points="1768,268 1818,250 1840,302 1790,322" fill="#8dff26"/>
+    <polygon points="1958,420 2028,420 2028,490 1958,490" fill="#05040a"/>
+    <polygon points="1568,848 1612,824 1638,868 1594,894" fill="#8dff26"/>
+    <polygon points="1238,986 1298,986 1298,1046 1238,1046" fill="#06050b"/>
+    <polygon points="626,976 672,958 692,1004 646,1024" fill="#8dff26"/>
+    <polygon points="318,1004 362,1004 362,1048 318,1048" fill="#05040a"/>
+  </g>
+
+  <g opacity="0.38" fill="#97ff2a" filter="url(#spray-glow)">
+    <circle cx="204" cy="432" r="4"/>
+    <circle cx="262" cy="486" r="3"/>
+    <circle cx="392" cy="340" r="5"/>
+    <circle cx="558" cy="236" r="4"/>
+    <circle cx="780" cy="410" r="3"/>
+    <circle cx="948" cy="232" r="4"/>
+    <circle cx="1128" cy="362" r="5"/>
+    <circle cx="1320" cy="208" r="3"/>
+    <circle cx="1510" cy="452" r="4"/>
+    <circle cx="1708" cy="340" r="5"/>
+    <circle cx="1884" cy="620" r="3"/>
+    <circle cx="1634" cy="762" r="4"/>
+    <circle cx="1394" cy="918" r="5"/>
+    <circle cx="1040" cy="1034" r="3"/>
+    <circle cx="720" cy="912" r="4"/>
+    <circle cx="482" cy="760" r="5"/>
+  </g>
+
+  <g opacity="0.22" fill="#05040a">
+    <path d="M82 964 L700 778 L712 806 L98 1018 Z"/>
+    <path d="M1420 154 L2118 74 L2126 120 L1430 214 Z"/>
+    <path d="M1580 1074 L2082 920 L2094 958 L1602 1126 Z"/>
+  </g>
+
+  <rect width="2200" height="1200" fill="#ffffff" opacity="0.16" filter="url(#grain)"/>
+</svg>

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" shape-rendering="crispEdges">
+  <!-- Acid green drop shadow, offset +2px right +2px down -->
+  <g fill="#aaff00">
+    <rect x="9"  y="7"  width="6"  height="2"/>
+    <rect x="21" y="7"  width="6"  height="2"/>
+    <rect x="7"  y="9"  width="10" height="2"/>
+    <rect x="19" y="9"  width="10" height="2"/>
+    <rect x="5"  y="11" width="26" height="2"/>
+    <rect x="5"  y="13" width="26" height="2"/>
+    <rect x="5"  y="15" width="26" height="2"/>
+    <rect x="7"  y="17" width="22" height="2"/>
+    <rect x="9"  y="19" width="18" height="2"/>
+    <rect x="11" y="21" width="14" height="2"/>
+    <rect x="13" y="23" width="10" height="2"/>
+    <rect x="15" y="25" width="6"  height="2"/>
+    <rect x="17" y="27" width="2"  height="2"/>
+  </g>
+  <!-- Purple pixelated heart -->
+  <g fill="#a855f7">
+    <rect x="7"  y="5"  width="6"  height="2"/>
+    <rect x="19" y="5"  width="6"  height="2"/>
+    <rect x="5"  y="7"  width="10" height="2"/>
+    <rect x="17" y="7"  width="10" height="2"/>
+    <rect x="3"  y="9"  width="26" height="2"/>
+    <rect x="3"  y="11" width="26" height="2"/>
+    <rect x="3"  y="13" width="26" height="2"/>
+    <rect x="5"  y="15" width="22" height="2"/>
+    <rect x="7"  y="17" width="18" height="2"/>
+    <rect x="9"  y="19" width="14" height="2"/>
+    <rect x="11" y="21" width="10" height="2"/>
+    <rect x="13" y="23" width="6"  height="2"/>
+    <rect x="15" y="25" width="2"  height="2"/>
+  </g>
+  <!-- Lavender highlight pixels (top-left lobe) -->
+  <rect fill="#d8b4fe" x="7" y="9"  width="2" height="2"/>
+  <rect fill="#d8b4fe" x="5" y="11" width="2" height="2"/>
+</svg>
