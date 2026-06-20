@@ -39,6 +39,34 @@
           </button>
         </div>
 
+        <div class="prompt-slots">
+          <button
+            v-for="(slot, i) in promptSlots"
+            :key="i"
+            class="prompt-slot-btn"
+            :class="{ active: i === activePromptSlot, filled: !!slot.trim() }"
+            :title="slot.trim() ? slot.slice(0, 100) + (slot.length > 100 ? '…' : '') : 'Empty slot'"
+            type="button"
+            @click="switchPromptSlot(i)"
+          >{{ i + 1 }}</button>
+          <div class="prompt-slot-actions">
+            <button
+              class="slot-action-btn slot-action-copy"
+              :disabled="!prompt.trim()"
+              title="Copy current slot prompt"
+              type="button"
+              @click="copyPromptSlot"
+            ><AppIcon name="copy" /></button>
+            <button
+              class="slot-action-btn slot-action-clear"
+              :disabled="!prompt.trim()"
+              title="Clear current slot"
+              type="button"
+              @click="clearPromptSlot"
+            ><AppIcon name="x" /></button>
+          </div>
+        </div>
+
         <textarea
           v-model="prompt"
           class="prompt-box"
@@ -282,6 +310,7 @@
       :motion-prompt="prompt"
       :enhancing="enhancing"
       :enhance-fn="enhance"
+      :reference-filenames="inputImages.map(f => f.filename)"
       @close="animateModalOpen = false"
       @submit="submitAnimateJob"
     />
@@ -331,6 +360,7 @@ import ReferenceUploader from "../components/reference/ReferenceUploader.vue"
 import AppIcon from "../components/ui/AppIcon.vue"
 import { useGalleryScale } from "../composables/useGalleryScale"
 import { useImageModal } from "../composables/useImageModal"
+import { usePromptSlots } from "../composables/usePromptSlots"
 
 const jobs = ref([])
 
@@ -388,9 +418,33 @@ const {
 const selectedQuality = ref("medium")
 const batchCount = ref(4)
 
-const prompt = ref(
-  "chubby bearded man, full body view, wearing loose tank top t shirt, loose sweat shorts, barefoot."
-)
+const {
+  slots: promptSlots,
+  activeIndex: activePromptSlot,
+  syncSlot: syncPromptSlot,
+  switchSlot: switchPromptSlotFn,
+  fillFreeSlot: fillPromptFreeSlot,
+  clearSlot: clearPromptSlotStorage
+} = usePromptSlots('prompt-slots')
+
+const DEFAULT_PROMPT = "chubby bearded man, full body view, wearing loose tank top t shirt, loose sweat shorts, barefoot."
+const prompt = ref(promptSlots.value[activePromptSlot.value] || DEFAULT_PROMPT)
+
+watch(prompt, (val) => syncPromptSlot(val))
+
+const switchPromptSlot = (i) => {
+  const next = switchPromptSlotFn(i, prompt.value)
+  prompt.value = next
+}
+
+const clearPromptSlot = () => {
+  clearPromptSlotStorage()
+  prompt.value = ''
+}
+
+const copyPromptSlot = async () => {
+  try { await navigator.clipboard.writeText(prompt.value) } catch {}
+}
 
 const enhancing = ref(false)
 
@@ -694,11 +748,11 @@ const purgePreviewImages = () => {
 }
 
 // Core enhance — calls server, returns enhanced string or null on error
-const enhance = async (text) => {
+const enhance = async (text, imageFilenames = []) => {
   if (!text?.trim() || enhancing.value) return null
   enhancing.value = true
   try {
-    const res = await enhancePromptRequest(text.trim())
+    const res = await enhancePromptRequest(text.trim(), imageFilenames)
     return res.data.enhanced || null
   } catch (err) {
     const msg = err.response?.data?.error || err.message || "Prompt enhancement failed"
@@ -710,10 +764,14 @@ const enhance = async (text) => {
   }
 }
 
-// Used by the main prompt textarea button
+// Used by the main prompt textarea button — passes current reference images
 const enhancePrompt = async () => {
-  const enhanced = await enhance(prompt.value)
-  if (enhanced) prompt.value = enhanced
+  const filenames = inputImages.value.map(f => f.filename)
+  const enhanced = await enhance(prompt.value, filenames)
+  if (enhanced) {
+    const placed = fillPromptFreeSlot(enhanced, prompt.value)
+    prompt.value = placed !== null ? placed : enhanced
+  }
 }
 
 const copyJobText = async (job) => {

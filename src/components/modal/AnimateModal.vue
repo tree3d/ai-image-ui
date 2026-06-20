@@ -48,6 +48,34 @@
                 <span>{{ enhancing ? 'Enhancing…' : 'Enhance' }}</span>
               </button>
             </div>
+            <div class="prompt-slots">
+              <button
+                v-for="(slot, i) in animateSlots"
+                :key="i"
+                class="prompt-slot-btn"
+                :class="{ active: i === activeAnimateSlot, filled: !!slot.trim() }"
+                :title="slot.trim() ? slot.slice(0, 100) + (slot.length > 100 ? '…' : '') : 'Empty slot'"
+                type="button"
+                @click="switchAnimateSlot(i)"
+              >{{ i + 1 }}</button>
+              <div class="prompt-slot-actions">
+                <button
+                  class="slot-action-btn slot-action-copy"
+                  :disabled="!localPrompt.trim()"
+                  title="Copy current slot prompt"
+                  type="button"
+                  @click="copyAnimateSlot"
+                ><AppIcon name="copy" /></button>
+                <button
+                  class="slot-action-btn slot-action-clear"
+                  :disabled="!localPrompt.trim()"
+                  title="Clear current slot"
+                  type="button"
+                  @click="clearAnimateSlot"
+                ><AppIcon name="x" /></button>
+              </div>
+            </div>
+
             <textarea
               v-model="localPrompt"
               class="animate-modal-prompt-input"
@@ -114,13 +142,15 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import AppIcon from '../ui/AppIcon.vue'
+import { usePromptSlots } from '../../composables/usePromptSlots'
 
 const props = defineProps({
   open: { type: Boolean, required: true },
   sourceJob: { type: Object, default: null },
   motionPrompt: { type: String, default: '' },
   enhancing: { type: Boolean, default: false },
-  enhanceFn: { type: Function, default: null }
+  enhanceFn: { type: Function, default: null },
+  referenceFilenames: { type: Array, default: () => [] }
 })
 
 const emit = defineEmits(['close', 'submit'])
@@ -131,11 +161,36 @@ const SEEDANCE_DURATIONS = [5, 10]
 const SEEDANCE_RESOLUTIONS_STANDARD = ['720p', '1080p']
 const SEEDANCE_RESOLUTIONS_FAST = ['720p']
 
+const {
+  slots: animateSlots,
+  activeIndex: activeAnimateSlot,
+  syncSlot: syncAnimateSlot,
+  switchSlot: switchAnimateSlotFn,
+  fillFreeSlot: fillAnimateFreeSlot,
+  clearSlot: clearAnimateSlotStorage
+} = usePromptSlots('animate-prompt-slots')
+
 const model = ref('grok')
 const duration = ref(6)
 const resolution = ref('720p')
 const localPrompt = ref('')
 const seedanceFast = ref(false)
+
+watch(localPrompt, (val) => syncAnimateSlot(val))
+
+const switchAnimateSlot = (i) => {
+  const next = switchAnimateSlotFn(i, localPrompt.value)
+  localPrompt.value = next
+}
+
+const clearAnimateSlot = () => {
+  clearAnimateSlotStorage()
+  localPrompt.value = ''
+}
+
+const copyAnimateSlot = async () => {
+  try { await navigator.clipboard.writeText(localPrompt.value) } catch {}
+}
 
 const activeDurations = computed(() =>
   model.value === 'seedance' ? SEEDANCE_DURATIONS : GROK_DURATIONS
@@ -170,15 +225,18 @@ watch(() => props.open, (v) => {
     model.value = 'grok'
     duration.value = 6
     resolution.value = '720p'
-    localPrompt.value = props.motionPrompt
     seedanceFast.value = false
+    localPrompt.value = animateSlots.value[activeAnimateSlot.value] || props.motionPrompt
   }
 })
 
 const handleEnhance = async () => {
   if (!props.enhanceFn || !localPrompt.value.trim()) return
-  const enhanced = await props.enhanceFn(localPrompt.value)
-  if (enhanced) localPrompt.value = enhanced
+  const enhanced = await props.enhanceFn(localPrompt.value, props.referenceFilenames)
+  if (enhanced) {
+    const placed = fillAnimateFreeSlot(enhanced, localPrompt.value)
+    localPrompt.value = placed !== null ? placed : enhanced
+  }
 }
 
 const submit = () => {

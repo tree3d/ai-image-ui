@@ -1023,13 +1023,26 @@ const OLLAMA_DEFAULT_SYSTEM_PROMPT =
   "if i use image references in my text keep the image references."
 
 app.post("/enhance-prompt", async (req, res) => {
-  const { prompt } = req.body
+  const { prompt, imageFilenames = [] } = req.body
   if (!prompt?.trim()) return res.status(400).json({ error: "prompt is required" })
 
   const ollamaUrl = process.env.OLLAMA_URL || "http://localhost:11434"
   const ollamaModel = process.env.OLLAMA_MODEL || "gemma4:31B"
   const numCtx = parseInt(process.env.OLLAMA_NUM_CTX || "8192", 10)
   const systemPrompt = process.env.OLLAMA_SYSTEM_PROMPT || OLLAMA_DEFAULT_SYSTEM_PROMPT
+
+  // Resolve reference images from INPUT_DIR only (user-uploaded references, ordered by UI)
+  const images = []
+  for (const filename of imageFilenames.slice(0, 5)) {
+    const filePath = path.join(INPUT_DIR, path.basename(filename))
+    if (fs.existsSync(filePath)) {
+      const buf = await fs.promises.readFile(filePath)
+      images.push(buf.toString("base64"))
+    }
+  }
+
+  const userMessage = { role: "user", content: prompt.trim() }
+  if (images.length > 0) userMessage.images = images
 
   try {
     const ollamaRes = await fetch(`${ollamaUrl}/api/chat`, {
@@ -1039,7 +1052,7 @@ app.post("/enhance-prompt", async (req, res) => {
         model: ollamaModel,
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: prompt.trim() }
+          userMessage
         ],
         stream: false,
         think: true,
